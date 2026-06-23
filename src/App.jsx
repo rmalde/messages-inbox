@@ -12,6 +12,7 @@ export default function App() {
   const [selectedGuid, setSelectedGuid] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [accessError, setAccessError] = useState(null); // {needsAccess, error}
 
   const selectedRef = useRef(null);
   const optimisticRef = useRef([]); // pending sent messages, by guid
@@ -22,9 +23,14 @@ export default function App() {
   );
 
   const refreshConvos = useCallback(async () => {
-    const list = await window.api.listConversations();
-    setConvos(list);
-    return list;
+    const res = await window.api.listConversations();
+    if (!res || res.ok === false) {
+      setAccessError({ needsAccess: res ? res.needsAccess : true, error: res && res.error });
+      return [];
+    }
+    setAccessError(null);
+    setConvos(res.convos);
+    return res.convos;
   }, []);
 
   const refreshMessages = useCallback(async (chatId) => {
@@ -143,6 +149,35 @@ export default function App() {
     unread: convos.filter((c) => !c.archived && c.unread).length,
     archived: convos.filter((c) => c.archived).length,
   }), [convos]);
+
+  if (accessError && accessError.needsAccess && convos.length === 0) {
+    return (
+      <div className="access-screen">
+        <div className="access-card">
+          <div className="access-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <h2>Full Disk Access needed</h2>
+          <p>
+            Messages Inbox reads your local Messages database to show your
+            conversations. macOS keeps it protected, so you’ll need to grant
+            access once.
+          </p>
+          <ol>
+            <li>Click <b>Open Settings</b> below.</li>
+            <li>Find <b>Messages Inbox</b> in the list and turn it <b>on</b> (add it with “+” if it’s not listed — it lives in /Applications).</li>
+            <li>Quit and reopen Messages Inbox.</li>
+          </ol>
+          <div className="access-actions">
+            <button className="btn-primary" onClick={() => window.api.openAccessSettings()}>Open Settings</button>
+            <button className="btn-secondary" onClick={() => refreshConvos()}>Try Again</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app">

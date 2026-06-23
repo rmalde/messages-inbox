@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('api', {
   send: (payload) => ipcRenderer.invoke('message:send', payload),
   attachment: (filePath) => ipcRenderer.invoke('attachment:data', filePath),
   isDark: () => ipcRenderer.invoke('theme:isDark'),
+  checkAccess: () => ipcRenderer.invoke('access:check'),
+  openAccessSettings: () => ipcRenderer.invoke('access:openSettings'),
 
   // main -> renderer events (menu accelerators, theme)
   on: (channel, cb) => {

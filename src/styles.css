@@ -376,6 +376,34 @@ body {
 .emoji-grid button { border: none; background: transparent; font-size: 22px; padding: 3px; border-radius: 7px; cursor: pointer; transition: background 0.1s, transform 0.1s; }
 .emoji-grid button:hover { background: var(--hover); transform: scale(1.15); }
 
+.access-screen {
+  height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); padding: 24px; -webkit-app-region: drag;
+}
+.access-card {
+  max-width: 440px; text-align: center; -webkit-app-region: no-drag;
+  display: flex; flex-direction: column; align-items: center;
+}
+.access-icon {
+  width: 72px; height: 72px; border-radius: 18px;
+  background: linear-gradient(var(--blue-top), var(--blue-bot));
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 10px 30px rgba(10,123,255,0.34); margin-bottom: 18px;
+}
+.access-card h2 { font-size: 19px; font-weight: 700; margin: 0 0 8px; }
+.access-card p { font-size: 13.5px; line-height: 1.5; color: var(--text-secondary); margin: 0 0 16px; }
+.access-card ol { text-align: left; font-size: 13px; line-height: 1.6; color: var(--text); margin: 0 0 20px; padding-left: 20px; }
+.access-card ol b { font-weight: 650; }
+.access-actions { display: flex; gap: 10px; }
+.btn-primary, .btn-secondary {
+  border: none; border-radius: 9px; padding: 8px 18px; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: filter 0.12s ease, background 0.12s ease;
+}
+.btn-primary { background: var(--blue-bot); color: #fff; }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-secondary { background: var(--hover); color: var(--text); }
+.btn-secondary:hover { background: var(--selected); }
+
 .no-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-tertiary); gap: 12px; }
 .no-chat .big {
   width: 76px; height: 76px; border-radius: 50%;

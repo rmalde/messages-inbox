@@ -1,8 +1,9 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain, Menu, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, nativeTheme, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const db = require('./lib/db');
 const { Store } = require('./lib/store');
@@ -99,9 +100,34 @@ app.on('window-all-closed', () => {
 
 // ---- IPC ------------------------------------------------------------------
 
+const CHAT_DB = path.join(os.homedir(), 'Library', 'Messages', 'chat.db');
+
+function diagnoseAccess() {
+  // chat.db always exists on a Mac that has used Messages; if we can't read it
+  // the cause is almost always missing Full Disk Access for this app.
+  try {
+    fs.accessSync(CHAT_DB, fs.constants.R_OK);
+    return { canRead: true };
+  } catch {
+    return { canRead: false };
+  }
+}
+
 ipcMain.handle('conversations:list', async () => {
-  const convos = await db.getConversations();
-  return store.decorate(convos);
+  try {
+    const convos = await db.getConversations();
+    return { ok: true, convos: store.decorate(convos) };
+  } catch (e) {
+    const diag = diagnoseAccess();
+    return { ok: false, needsAccess: !diag.canRead, error: String((e && e.message) || e) };
+  }
+});
+
+ipcMain.handle('access:check', async () => diagnoseAccess());
+
+ipcMain.handle('access:openSettings', async () => {
+  await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles');
+  return true;
 });
 
 ipcMain.handle('messages:list', async (_e, chatId) => {
