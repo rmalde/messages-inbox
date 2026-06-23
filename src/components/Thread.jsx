@@ -11,30 +11,37 @@ function sameRun(a, b) {
 export default function Thread({ convo, messages, onArchive, onUnarchive, onSend }) {
   const scrollRef = useRef(null);
   const lastCount = useRef(0);
-  const lastGuid = useRef(null);
+  const scrolledGuid = useRef(null); // guid we've already pinned to bottom
   const mountedAt = useRef(0);
 
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const chatChanged = lastGuid.current !== convo.guid;
+    // Wait until messages for this chat have actually rendered — otherwise we'd
+    // "scroll" an empty list and then never re-pin once content arrives.
+    if (messages.length === 0) return;
+
+    const chatChanged = scrolledGuid.current !== convo.guid;
     const grew = messages.length !== lastCount.current;
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 260;
+
     if (chatChanged) {
+      const jump = () => { el.scrollTop = el.scrollHeight; };
       el.style.scrollBehavior = 'auto';
-      el.scrollTop = el.scrollHeight;
-      el.style.scrollBehavior = 'smooth';
+      jump();
+      requestAnimationFrame(jump);                       // after layout settles
+      setTimeout(() => { jump(); el.style.scrollBehavior = 'smooth'; }, 140); // after async images
+      scrolledGuid.current = convo.guid;
       mountedAt.current = Date.now();
     } else if (grew && nearBottom) {
       el.scrollTop = el.scrollHeight;
     }
     lastCount.current = messages.length;
-    lastGuid.current = convo.guid;
   }, [messages, convo.guid]);
 
   // Only animate bubbles that arrive after the conversation is already open,
   // so switching chats doesn't trigger a flurry of entrance animations.
-  const justOpened = lastGuid.current !== convo.guid;
+  const justOpened = scrolledGuid.current !== convo.guid;
 
   return (
     <div className="main">
