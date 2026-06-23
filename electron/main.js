@@ -221,16 +221,27 @@ async function aiTick() {
 
   // 1) Learning capture: a chat that had a draft now shows a newer outgoing
   //    message (sent from another device / Messages) -> record the edit.
+  let changed = false;
   for (const c of convos) {
     const prev = aiPrevState[c.guid];
     const draft = aiStore.getDraft(c.guid);
     if (draft && c.lastFromMe && (!prev || c.lastDate > prev.lastDate)) {
+      // Ronak replied (from another device) -> learn from the edit, clear draft.
       const reached = aiStore.recordSample({ guid: c.guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: c.lastText || '', archived: false });
       aiStore.deleteDraft(c.guid);
+      changed = true;
       if (reached) maybeReflect();
+    } else if (draft && !c.lastFromMe && draft.forDate !== c.lastIncomingDate) {
+      // A newer incoming message arrived: this draft replies to a superseded
+      // message, so it's stale. Drop it immediately (rather than waiting for a
+      // regeneration slot) so we never surface an off-by-one draft. A fresh one
+      // is generated below.
+      aiStore.deleteDraft(c.guid);
+      changed = true;
     }
     aiPrevState[c.guid] = { lastDate: c.lastDate, lastFromMe: c.lastFromMe };
   }
+  if (changed && win) win.webContents.send('ai-changed');
 
   // 2) Draft generation for today's awaiting-reply chats (a few per tick).
   // Back off while the API is unusable (no credits / bad key) so we don't spam

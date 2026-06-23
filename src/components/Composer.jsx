@@ -8,17 +8,16 @@ export default function Composer({ onSend, disabled, draft }) {
   const taRef = useRef(null);
   const popRef = useRef(null);
   const dirty = useRef(false);
-  const textRef = useRef(text);
-  useEffect(() => { textRef.current = text; }, [text]);
 
-  // Prefill the AI draft only into an EMPTY, untouched box — so an incoming
-  // message's new draft can never destroy what you've typed (or a draft you're
-  // already editing). (Composer is keyed by chat, so this only fills the open one.)
+  // Mirror the AI draft into the box as long as the user hasn't typed anything.
+  // Gating on `dirty` (not emptiness) means a refreshed draft replaces a stale
+  // one — and a stale draft gets cleared when it's dropped (draft -> null) —
+  // while anything you've actually typed is never clobbered. (Composer is keyed
+  // by chat, so this only affects the open conversation.)
   useEffect(() => {
-    if (draft && !dirty.current && textRef.current.trim() === '') {
-      setText(draft);
-      setFromDraft(true);
-    }
+    if (dirty.current) return;
+    setText(draft || '');
+    setFromDraft(!!draft);
   }, [draft]);
 
   // Auto-grow textarea.
