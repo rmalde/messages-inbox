@@ -29,7 +29,7 @@ anywhere; everything runs on your machine.
 - **Archive / read state:** stored separately in a small JSON file in the app's
   userData dir, keyed by chat GUID. Your real Messages app is untouched.
 
-## Run it
+## Run it (development)
 
 ```bash
 npm install
@@ -38,12 +38,23 @@ npm run dev      # live-reload dev mode (Vite + Electron)
 npm start        # production build + launch
 ```
 
+## Install as a Mac app
+
+```bash
+npm run dist     # builds release/Messages Inbox-<version>-arm64.dmg
+```
+
+Open the `.dmg` and drag **Messages Inbox** into `/Applications`. The app is
+**unsigned** (local use), so the first launch needs a right-click → **Open** to
+get past Gatekeeper. Then grant the two permissions below.
+
 ### Requirements / permissions
 
-- The app (or the terminal you launch it from) needs **Full Disk Access** to
-  read `chat.db` — System Settings → Privacy & Security → Full Disk Access.
-- Sending uses **Automation** permission for Messages (macOS will prompt the
-  first time).
+- **Full Disk Access** — required to read `chat.db`. System Settings → Privacy
+  & Security → Full Disk Access → add **Messages Inbox** (or, in dev, the
+  terminal you launch from).
+- **Automation** — sending prompts for permission to control Messages the first
+  time; click Allow.
 
 ## Project layout
 
@@ -57,6 +68,8 @@ electron/
     contacts.js        best-effort name resolution from AddressBook
     store.js           local archive + read-state (JSON)
     send.js            AppleScript send
+    bin.js             absolute paths to system sqlite3 / osascript
+build/                 app icon (.icns) + entitlements for packaging
 src/
   App.jsx              state, polling, archive logic, keyboard wiring
   components/          Sidebar, Thread, Bubble, Composer, Avatar, Attachment
