@@ -290,16 +290,24 @@ body {
 .bubble.theirs.gp-middle { border-radius: var(--rf) var(--r) var(--r) var(--rf); }
 .bubble.theirs.gp-last   { border-radius: var(--rf) var(--r) var(--r) var(--r); }
 
-/* iMessage tail on the last bubble of a run. A single colored hook at the
-   bottom corner — no background-colored cutout, so it never paints a box over
-   an adjacent group avatar. Kept small enough to stay clear of the avatar. */
-.bubble.tail::after { content: ""; position: absolute; bottom: 0; width: 13px; height: 15px; }
+/* iMessage tail on the last bubble of a run. A colored shape masked into the
+   classic curl — transparent everywhere else, so it never paints a box over an
+   adjacent group avatar. */
+.bubble.tail::after {
+  content: ""; position: absolute; bottom: 0; width: 15px; height: 17px;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+}
 .bubble.mine.tail::after {
-  right: -5px; background: var(--blue-bot); border-bottom-left-radius: 14px;
+  right: -7px; background: var(--blue-bot);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2015%2017'%3E%3Cpath%20d='M0%200%20C0%2010%204%2016%2015%2017%20C9%2014%208%208%208%200%20Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2015%2017'%3E%3Cpath%20d='M0%200%20C0%2010%204%2016%2015%2017%20C9%2014%208%208%208%200%20Z'/%3E%3C/svg%3E");
 }
 .bubble.mine.sms.tail::after { background: var(--green-bot); }
 .bubble.theirs.tail::after {
-  left: -5px; background: var(--incoming); border-bottom-right-radius: 14px;
+  left: -7px; background: var(--incoming);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2015%2017'%3E%3Cpath%20d='M15%200%20C15%2010%2011%2016%200%2017%20C6%2014%207%208%207%200%20Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2015%2017'%3E%3Cpath%20d='M15%200%20C15%2010%2011%2016%200%2017%20C6%2014%207%208%207%200%20Z'/%3E%3C/svg%3E");
 }
 
 .reply-quote {
