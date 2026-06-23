@@ -1,6 +1,6 @@
 {
   "name": "messages-inbox",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local iMessage wrapper with an email-style archive inbox",
   "author": "Ronak Malde",
   "private": true,
