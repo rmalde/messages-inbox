@@ -202,11 +202,9 @@ ipcMain.handle('message:send', async (_e, payload) => {
 
 // ---- AI: drafting + learning loop ----------------------------------------
 
-function startOfTodayMs() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
+// Rolling backfill window: draft for chats whose last incoming message is this
+// recent and still awaiting a reply. New messages fall inside it automatically.
+const DRAFT_WINDOW_MS = 36 * 60 * 60 * 1000;
 
 async function aiTick() {
   if (!aiStore || aiStatus.reflecting) return;
@@ -215,7 +213,7 @@ async function aiTick() {
     convos = store.decorate(await db.getConversations());
   } catch { return; }
 
-  const today = startOfTodayMs();
+  const cutoff = Date.now() - DRAFT_WINDOW_MS;
 
   // 1) Learning capture: a chat that had a draft now shows a newer outgoing
   //    message (sent from another device / Messages) -> record the edit.
@@ -235,7 +233,7 @@ async function aiTick() {
   // failing calls; it resumes automatically after the cooldown.
   if (Date.now() < aiDraftCooldownUntil) return;
   const needsDraft = convos.filter((c) =>
-    !c.archived && !c.lastFromMe && c.lastIncomingDate >= today &&
+    !c.archived && !c.lastFromMe && c.lastIncomingDate >= cutoff &&
     !(aiStore.getDraft(c.guid) && aiStore.getDraft(c.guid).forDate === c.lastIncomingDate)
   );
 

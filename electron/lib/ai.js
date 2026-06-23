@@ -11,9 +11,21 @@ const REFLECT_MODEL = 'claude-sonnet-4-6';
 // Resolve the API key. A Finder-launched app doesn't inherit shell exports, so
 // fall back to parsing the user's shell rc files.
 let cachedKey;
+function keyFilePaths() {
+  const base = path.join(os.homedir(), 'Library', 'Application Support');
+  return ['Messages Inbox', 'messages-inbox'].map((d) => path.join(base, d, 'anthropic-key'));
+}
 function getApiKey() {
   if (cachedKey !== undefined) return cachedKey;
   if (process.env.ANTHROPIC_API_KEY) { cachedKey = process.env.ANTHROPIC_API_KEY; return cachedKey; }
+  // A dedicated, gitignored key file takes priority over shell rc files so the
+  // app can use a key without touching the user's shell config.
+  for (const f of keyFilePaths()) {
+    try {
+      const k = fs.readFileSync(f, 'utf8').trim();
+      if (k) { cachedKey = k; return cachedKey; }
+    } catch { /* missing */ }
+  }
   const files = ['.zshrc', '.zprofile', '.zshenv', '.bash_profile', '.profile'].map((f) => path.join(os.homedir(), f));
   for (const f of files) {
     try {
