@@ -38,34 +38,34 @@ npm run dev      # live-reload dev mode (Vite + Electron)
 npm start        # production build + launch
 ```
 
-## Install as a Mac app
+## Install as a self-updating Mac app (recommended)
 
 ```bash
-npm run dist     # builds release/Messages Inbox-<version>-arm64.dmg
+npm run make-app   # builds & installs /Applications/Messages Inbox.app
 ```
 
-Open the `.dmg` and drag **Messages Inbox** into `/Applications`. The app is
-**unsigned** (local use), so the first launch needs a right-click → **Open** to
-get past Gatekeeper. Then grant the two permissions below.
+This installs a real **Messages Inbox.app** (proper name + icon, stable
+identity) whose code is a thin bootstrap: on every launch it `git pull`s the
+latest source, rebuilds the renderer, then runs it. Because the *bundle* never
+changes, you grant **Full Disk Access once** and it persists across every future
+update. First launch shows a guided "Full Disk Access" screen if needed — add
+`/Applications/Messages Inbox.app` and toggle it on.
 
-## Auto-updating launcher (always runs the latest source)
+Requires the repo to stay at `~/tech/messages-inbox`. Re-run `make-app` only if
+the Electron version itself is upgraded.
 
-The packaged `.dmg` is a frozen snapshot. For a build that updates itself every
-time you open it, use the launcher:
+### Frozen snapshot (alternative)
 
 ```bash
-npm run make-launcher   # creates "Messages Inbox.app" in the repo
+npm run dist       # builds release/Messages Inbox-<version>-arm64.dmg
 ```
 
-Drag that **Messages Inbox.app** into `/Applications` (and/or your Dock).
-Opening it runs `scripts/update-and-launch.sh`, which `git pull`s the latest
-source, rebuilds only if something changed, and launches the app — so each
-relaunch is up to date. (Grant Full Disk Access to this launcher's engine the
-first time; the app shows a guided screen if it's missing.)
+A static `.dmg` that does not auto-update. Unsigned, so first launch needs a
+right-click → **Open**.
 
-> True in-place auto-update of a distributed app (Electron's `electron-updater`)
-> requires Apple code-signing + notarization (paid Developer ID). The launcher
-> above is the free equivalent for personal use.
+> A true in-place auto-updater (Electron's `electron-updater`) would need Apple
+> code-signing + notarization (paid Developer ID). The self-updating app above
+> is the free equivalent for personal use.
 
 ### Requirements / permissions
 

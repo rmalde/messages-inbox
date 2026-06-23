@@ -11,7 +11,8 @@
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --mac",
     "launch": "bash scripts/update-and-launch.sh",
-    "make-launcher": "bash scripts/make-launcher.sh"
+    "make-launcher": "bash scripts/make-launcher.sh",
+    "make-app": "bash scripts/make-app.sh"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
