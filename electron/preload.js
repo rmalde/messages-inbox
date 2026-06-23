@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('api', {
   draftFor: (guid) => ipcRenderer.invoke('ai:draftFor', guid),
   dismissDraft: (guid) => ipcRenderer.invoke('ai:dismissDraft', guid),
   aiVersions: () => ipcRenderer.invoke('ai:versions'),
+  aiSamples: () => ipcRenderer.invoke('ai:samples'),
   aiStatus: () => ipcRenderer.invoke('ai:status'),
 
   // main -> renderer events (menu accelerators, theme)

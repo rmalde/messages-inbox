@@ -246,7 +246,7 @@ async function aiTick() {
 
 async function generateDraftFor(c) {
   try {
-    const messages = await db.getMessages(c.chatId, 40);
+    const messages = await db.getMessages(c.chatId, 60); // ensure >= 20 non-empty for context
     const lastIncoming = [...messages].reverse().find((m) => !m.fromMe);
     const res = await ai.generateDraft({
       systemPrompt: aiStore.currentPrompt(),
@@ -311,6 +311,8 @@ ipcMain.handle('ai:dismissDraft', async (_e, guid) => {
 });
 
 ipcMain.handle('ai:versions', async () => (aiStore ? aiStore.versions() : []));
+
+ipcMain.handle('ai:samples', async () => (aiStore ? aiStore.recentSamples(20) : []));
 
 ipcMain.handle('ai:status', async () => ({
   ...aiStatus,

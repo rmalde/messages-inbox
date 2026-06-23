@@ -456,6 +456,22 @@ body {
   width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 13px;
 }
 .prompt-close:hover { background: var(--selected); }
+.prompt-tabs { display: flex; gap: 2px; margin-left: 14px; background: var(--hover); border-radius: 8px; padding: 2px; }
+.prompt-tabs button { border: none; background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+.prompt-tabs button.active { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.14); }
+
+.edit-card { border: 1px solid var(--separator); border-radius: 11px; padding: 11px 12px; margin-bottom: 10px; }
+.edit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.edit-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.edit-tag { font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 6px; flex-shrink: 0; }
+.edit-tag.k-edit { color: #fff; background: linear-gradient(135deg, #ff9f0a, #ff6a3d); }
+.edit-tag.k-same { color: #fff; background: #34c759; }
+.edit-tag.k-arch { color: #fff; background: #8e8e93; }
+.edit-row { display: flex; gap: 8px; font-size: 12.5px; line-height: 1.4; margin-top: 4px; }
+.edit-lbl { flex-shrink: 0; width: 42px; color: var(--text-tertiary); font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.03em; padding-top: 1px; }
+.edit-draft { color: var(--text-secondary); }
+.edit-sent { color: var(--text); }
+
 .prompt-status { margin: 12px 18px 0; padding: 8px 12px; border-radius: 9px; font-size: 12.5px; }
 .prompt-status.ok { background: rgba(120, 180, 120, 0.14); color: var(--text-secondary); }
 .prompt-status.warn { background: rgba(255, 159, 10, 0.16); color: #d98a00; }

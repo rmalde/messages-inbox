@@ -6,7 +6,7 @@ const path = require('path');
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const DRAFT_MODEL = 'claude-haiku-4-5-20251001';
-const REFLECT_MODEL = 'claude-sonnet-4-6';
+const REFLECT_MODEL = 'claude-opus-4-8';
 
 // Resolve the API key. A Finder-launched app doesn't inherit shell exports, so
 // fall back to parsing the user's shell rc files.
@@ -47,10 +47,12 @@ function classifyError(status, body) {
   return 'other';
 }
 
-async function callAnthropic({ model, system, messages, max_tokens = 400, temperature = 0.7 }) {
+async function callAnthropic({ model, system, messages, max_tokens = 400, temperature }) {
   const key = getApiKey();
   if (!key) return { ok: false, errorType: 'nokey', error: 'No API key found' };
   try {
+    const reqBody = { model, max_tokens, system, messages };
+    if (temperature != null) reqBody.temperature = temperature; // some models reject it
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -58,7 +60,7 @@ async function callAnthropic({ model, system, messages, max_tokens = 400, temper
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ model, max_tokens, temperature, system, messages }),
+      body: JSON.stringify(reqBody),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -75,7 +77,7 @@ async function callAnthropic({ model, system, messages, max_tokens = 400, temper
 function buildTranscript(messages, isGroup) {
   return messages
     .filter((m) => (m.text && m.text.trim()) || m.attachments.length)
-    .slice(-14)
+    .slice(-24) // at least the last ~20 real messages for context
     .map((m) => {
       const who = m.fromMe ? 'Me' : (isGroup ? (m.sender || 'Them') : 'Them');
       const body = m.text && m.text.trim() ? m.text.trim() : '[attachment]';
@@ -113,7 +115,7 @@ Respond with ONLY valid JSON, no markdown fence:
 
   const user = `CURRENT SYSTEM PROMPT:\n"""\n${systemPrompt}\n"""\n\nRECENT CASES:\n${batch}`;
 
-  const res = await callAnthropic({ model: REFLECT_MODEL, system, messages: [{ role: 'user', content: user }], max_tokens: 3000, temperature: 0.4 });
+  const res = await callAnthropic({ model: REFLECT_MODEL, system, messages: [{ role: 'user', content: user }], max_tokens: 4000 });
   if (!res.ok) return res;
   try {
     const jsonText = res.text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();

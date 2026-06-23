@@ -27,8 +27,9 @@ class AiStore {
     }
     this.drafts = readJson(this.draftsFile, { byGuid: {} });
     if (!this.drafts.byGuid) this.drafts = { byGuid: {} };
-    this.learning = readJson(this.learningFile, { pending: [], totalSamples: 0 });
-    if (!this.learning.pending) this.learning = { pending: [], totalSamples: 0 };
+    this.learning = readJson(this.learningFile, { pending: [], recent: [], totalSamples: 0 });
+    if (!this.learning.pending) this.learning = { pending: [], recent: [], totalSamples: 0 };
+    if (!this.learning.recent) this.learning.recent = [];
   }
 
   // ---- prompts ----
@@ -67,7 +68,10 @@ class AiStore {
   // ---- learning ----
   // Returns true if the pending queue has reached the reflection threshold.
   recordSample(sample) {
-    this.learning.pending.push({ ...sample, ts: Date.now() });
+    const s = { ...sample, ts: Date.now() };
+    this.learning.pending.push(s);
+    this.learning.recent.push(s);
+    if (this.learning.recent.length > 60) this.learning.recent = this.learning.recent.slice(-60);
     this.learning.totalSamples += 1;
     writeJson(this.learningFile, this.learning);
     return this.learning.pending.length >= REFLECT_EVERY;
@@ -75,6 +79,8 @@ class AiStore {
   pendingSamples() { return this.learning.pending; }
   pendingCount() { return this.learning.pending.length; }
   totalSamples() { return this.learning.totalSamples; }
+  // Rolling history of recent edits (survives reflection resets), newest first.
+  recentSamples(n = 20) { return this.learning.recent.slice(-n).reverse(); }
   clearPending() {
     this.learning.pending = [];
     writeJson(this.learningFile, this.learning);
