@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect, useEffect } from 'react';
 import Avatar from './Avatar';
 import Bubble from './Bubble';
 import Composer from './Composer';
@@ -13,6 +13,15 @@ export default function Thread({ convo, messages, onArchive, onUnarchive, onSend
   const lastCount = useRef(0);
   const scrolledGuid = useRef(null); // guid we've already pinned to bottom
   const mountedAt = useRef(0);
+  const seenIds = useRef(new Set()); // message ids already rendered for this chat
+
+  // Reset the "seen" set when switching conversations.
+  useEffect(() => { seenIds.current = new Set(); }, [convo.guid]);
+  // After each render, remember which messages we've shown so only genuinely
+  // new ones animate on the next poll (not the same last bubble every tick).
+  useEffect(() => {
+    for (const m of messages) seenIds.current.add(m.id);
+  }, [messages]);
 
   useLayoutEffect(() => {
     const el = scrollRef.current;
@@ -78,7 +87,7 @@ export default function Thread({ convo, messages, onArchive, onUnarchive, onSend
           const groupPos = !prevSame && !nextSame ? 'single'
             : !prevSame && nextSame ? 'first'
             : prevSame && nextSame ? 'middle' : 'last';
-          const animate = !justOpened && i >= messages.length - 1 && Date.now() - mountedAt.current > 400;
+          const animate = !justOpened && !seenIds.current.has(m.id);
           return (
             <React.Fragment key={m.id}>
               {sep && (
