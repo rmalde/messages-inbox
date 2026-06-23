@@ -150,7 +150,7 @@ body {
 
 .convo {
   display: flex; gap: 11px; align-items: center;
-  padding: 11px 10px 11px 24px;   /* taller rows + a left lane for the unread dot */
+  padding: 14px 10px 14px 24px;   /* taller rows + a left lane for the unread dot */
   border-radius: 10px;
   cursor: pointer; position: relative;
   transition: background 0.1s ease;

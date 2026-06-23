@@ -176,6 +176,7 @@ async function getMessages(chatId, limit = 1000) {
            m.service AS service,
            m.associated_message_type AS assoc_type,
            m.associated_message_guid AS assoc_guid,
+           m.associated_message_emoji AS assoc_emoji,
            m.thread_originator_guid AS reply_guid,
            m.cache_has_attachments AS has_attach,
            m.item_type AS item_type,
@@ -251,8 +252,9 @@ async function getMessages(chatId, limit = 1000) {
     const isRemoval = r.assoc_type >= 3000;
     if (isRemoval) continue;
     let glyph = TAPBACKS[r.assoc_type];
-    if (r.assoc_type === 2006 || r.assoc_type >= 2007) {
-      glyph = textOf(r) || '⭐️'; // custom emoji reaction
+    if (!glyph) {
+      // Emoji/sticker reactions (2006+): the emoji lives in its own column.
+      glyph = r.assoc_emoji || null;
     }
     if (!glyph) continue;
     target.reactions.push({
