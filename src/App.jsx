@@ -18,6 +18,7 @@ export default function App() {
   const selectedRef = useRef(null);
   const toastTimer = useRef(null);
   const optimisticRef = useRef([]); // pending sent messages, by guid
+  const visibleRef = useRef([]); // latest rendered (filtered) conversation order
 
   const selected = useMemo(
     () => convos.find((c) => c.guid === selectedGuid) || null,
@@ -90,13 +91,17 @@ export default function App() {
 
   const archive = useCallback(async (c) => {
     if (!c) return;
+    // Pick the conversation directly above the one being archived (fall back to
+    // the one below if it was at the top).
+    const cur = visibleRef.current;
+    const idx = cur.findIndex((x) => x.guid === c.guid);
+    const neighborGuid = idx > 0 ? cur[idx - 1].guid : (cur[idx + 1] ? cur[idx + 1].guid : null);
+
     await window.api.archive(c.guid);
     const list = await refreshConvos();
-    // Move selection to the next inbox conversation.
-    const inbox = list.filter((x) => !x.archived);
-    const next = inbox.find((x) => x.guid !== c.guid);
     if (filter === 'inbox') {
-      if (next) selectConvo(next);
+      const target = neighborGuid && list.find((x) => x.guid === neighborGuid && !x.archived);
+      if (target) selectConvo(target);
       else { setSelectedGuid(null); setMessages([]); }
     }
     showToast('Conversation archived', async () => {
@@ -157,6 +162,8 @@ export default function App() {
       .filter((c) => (filter === 'archived' ? c.archived : !c.archived))
       .filter((c) => !q || c.name.toLowerCase().includes(q) || (c.lastText || '').toLowerCase().includes(q));
   }, [convos, filter, search]);
+
+  useEffect(() => { visibleRef.current = visible; }, [visible]);
 
   const navStep = useCallback((dir) => {
     if (!visible.length) return;

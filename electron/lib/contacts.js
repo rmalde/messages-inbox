@@ -101,6 +101,7 @@ let imgCacheTime = 0;
 
 function blobToDataUrl(hex) {
   if (!hex || hex.length < 200) return null; // skip references / empties
+  if (hex.length > 4_000_000) return null; // ~2MB image cap (memory safety)
   const buf = Buffer.from(hex, 'hex').subarray(1); // drop the 0x01 prefix
   let mime = 'image/jpeg';
   if (buf[0] === 0x89 && buf[1] === 0x50) mime = 'image/png';

@@ -1,6 +1,6 @@
 import React from 'react';
 import Avatar from './Avatar';
-import { listTime } from '../lib/format';
+import { listTime, sidebarTitle } from '../lib/format';
 
 function preview(c) {
   let t = c.lastText || '';
@@ -72,7 +72,7 @@ export default function Sidebar({
             <Avatar name={c.name} handle={c.isGroup ? undefined : c.identifier} />
             <div className="convo-body">
               <div className="convo-row1">
-                <span className="convo-name">{c.name}</span>
+                <span className="convo-name">{sidebarTitle(c.name, c.isGroup)}</span>
                 <span className="convo-time">{listTime(c.lastDate)}<span className="chev">›</span></span>
               </div>
               <div className="convo-preview">{preview(c)}</div>

@@ -45,6 +45,27 @@ export function shouldSeparate(prevMs, ms) {
   return ms - prevMs > 60 * 60 * 1000; // > 1 hour
 }
 
+// First token of a name ("Mike Liu SV Angel" -> "Mike"). Phone numbers /
+// emails (no spaces) pass through unchanged.
+export function firstName(name) {
+  if (!name) return name;
+  return name.trim().split(/\s+/)[0];
+}
+
+// Sidebar display: first names only. For groups, shorten each participant in a
+// joined list ("Arjun Karanam, Michael Elabd" -> "Arjun, Michael"); leave a
+// custom group name (no commas) as-is.
+export function sidebarTitle(name, isGroup) {
+  if (!name) return name;
+  if (isGroup) {
+    if (name.includes(',')) {
+      return name.split(',').map((s) => firstName(s.trim())).filter(Boolean).join(', ');
+    }
+    return name;
+  }
+  return firstName(name);
+}
+
 export function initials(name) {
   if (!name) return '?';
   // For group names ("Arjun, Michael, +4") use just the first participant.
