@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
 import { listTime, sidebarTitle } from '../lib/format';
+
+const PAGE = 50; // rows rendered per chunk — keeps huge archives from mounting at once
 
 function preview(c) {
   let t = c.lastText || '';
@@ -27,6 +29,24 @@ export default function Sidebar({
   conversations, filter, setFilter, search, setSearch,
   selectedGuid, onSelect, onArchive, onUnarchive, onOpenPrompts, counts,
 }) {
+  // Incrementally reveal rows as the user scrolls so an archive of 1000+
+  // conversations doesn't mount (and fire a contact-photo lookup) all at once.
+  const [limit, setLimit] = useState(PAGE);
+  const listRef = useRef(null);
+  useEffect(() => {
+    setLimit(PAGE);
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }, [filter, search]);
+
+  function onScroll(e) {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 500) {
+      setLimit((n) => (n < conversations.length ? n + PAGE : n));
+    }
+  }
+
+  const shown = conversations.slice(0, limit);
+
   return (
     <div className="sidebar">
       <div className="sidebar-bar">
@@ -59,20 +79,22 @@ export default function Sidebar({
 
       <div className="segmented">
         <button className={filter === 'inbox' ? 'active' : ''} onClick={() => setFilter('inbox')}>
-          Inbox{counts.unread > 0 && <span className="count">{counts.unread}</span>}
+          Inbox
+          <span className="total">{counts.inbox}</span>
+          {counts.unread > 0 && <span className="count">{counts.unread}</span>}
         </button>
         <button className={filter === 'archived' ? 'active' : ''} onClick={() => setFilter('archived')}>
-          Archived{counts.archived > 0 && <span className="count">{counts.archived}</span>}
+          Archived<span className="total">{counts.archived}</span>
         </button>
       </div>
 
-      <div className="convo-list">
+      <div className="convo-list" ref={listRef} onScroll={onScroll}>
         {conversations.length === 0 && (
           <div className="empty-list">
             {filter === 'archived' ? 'No archived conversations' : 'Inbox zero ✨'}
           </div>
         )}
-        {conversations.map((c) => (
+        {shown.map((c) => (
           <div
             key={c.guid}
             className={'convo' + (c.unread ? ' unread' : '') + (c.guid === selectedGuid ? ' selected' : '')}

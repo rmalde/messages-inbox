@@ -198,6 +198,7 @@ export default function App() {
   }, [visible, selectedGuid, selectConvo]);
 
   const counts = useMemo(() => ({
+    inbox: convos.filter((c) => !c.archived).length,
     unread: convos.filter((c) => !c.archived && c.unread).length,
     archived: convos.filter((c) => c.archived).length,
   }), [convos]);
