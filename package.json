@@ -1,0 +1,64 @@
+{
+  "name": "messages-inbox",
+  "version": "0.1.0",
+  "description": "Local iMessage wrapper with an email-style archive inbox",
+  "author": "Ronak Malde",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k -n vite,electron -c cyan,magenta \"vite\" \"wait-on tcp:127.0.0.1:5173 && cross-env VITE_DEV=1 electron .\"",
+    "build": "vite build",
+    "start": "npm run build && electron .",
+    "dist": "npm run build && electron-builder --mac"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "vite": "^6.0.7",
+    "wait-on": "^8.0.1"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "build": {
+    "appId": "com.ronak.messages-inbox",
+    "productName": "Messages Inbox",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["arm64"] }
+      ],
+      "category": "public.app-category.social-networking",
+      "icon": "build/icon.icns",
+      "darkModeSupport": true,
+      "identity": null,
+      "hardenedRuntime": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Messages Inbox sends messages through the Messages app on your behalf.",
+        "NSDesktopFolderUsageDescription": "Messages Inbox reads your local Messages database to display conversations."
+      }
+    },
+    "dmg": {
+      "title": "Messages Inbox",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    },
+    "npmRebuild": false
+  }
+}

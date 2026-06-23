@@ -1,0 +1,180 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import Sidebar from './components/Sidebar';
+import Thread from './components/Thread';
+
+const CONVO_POLL = 4000;
+const MSG_POLL = 3000;
+
+export default function App() {
+  const [convos, setConvos] = useState([]);
+  const [filter, setFilter] = useState('inbox');
+  const [search, setSearch] = useState('');
+  const [selectedGuid, setSelectedGuid] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+
+  const selectedRef = useRef(null);
+  const optimisticRef = useRef([]); // pending sent messages, by guid
+
+  const selected = useMemo(
+    () => convos.find((c) => c.guid === selectedGuid) || null,
+    [convos, selectedGuid]
+  );
+
+  const refreshConvos = useCallback(async () => {
+    const list = await window.api.listConversations();
+    setConvos(list);
+    return list;
+  }, []);
+
+  const refreshMessages = useCallback(async (chatId) => {
+    if (!chatId) return;
+    const msgs = await window.api.listMessages(chatId);
+    // Drop optimistic bubbles that have now landed in the DB.
+    optimisticRef.current = optimisticRef.current.filter(
+      (o) => !msgs.some((m) => m.fromMe && m.text.trim() === o.text.trim() && m.date >= o.date - 4000)
+    );
+    setMessages([...msgs, ...optimisticRef.current]);
+  }, []);
+
+  // Initial + interval polling for conversation list.
+  useEffect(() => {
+    refreshConvos();
+    const id = setInterval(refreshConvos, CONVO_POLL);
+    return () => clearInterval(id);
+  }, [refreshConvos]);
+
+  // Poll messages for the open conversation.
+  useEffect(() => {
+    if (!selected) return;
+    let live = true;
+    const chatId = selected.chatId;
+    (async () => {
+      setLoadingMsgs(true);
+      await refreshMessages(chatId);
+      if (live) setLoadingMsgs(false);
+    })();
+    const id = setInterval(() => refreshMessages(chatId), MSG_POLL);
+    return () => { live = false; clearInterval(id); };
+  }, [selected && selected.chatId, refreshMessages]);
+
+  const selectConvo = useCallback(async (c) => {
+    optimisticRef.current = [];
+    setMessages([]);
+    setSelectedGuid(c.guid);
+    selectedRef.current = c;
+    await window.api.openChat(c.guid);
+    // reflect read-state locally right away
+    setConvos((prev) => prev.map((x) => (x.guid === c.guid ? { ...x, unread: false } : x)));
+  }, []);
+
+  const archive = useCallback(async (c) => {
+    if (!c) return;
+    await window.api.archive(c.guid);
+    const list = await refreshConvos();
+    // Move selection to the next inbox conversation.
+    const inbox = list.filter((x) => !x.archived);
+    const next = inbox.find((x) => x.guid !== c.guid);
+    if (filter === 'inbox') {
+      if (next) selectConvo(next);
+      else { setSelectedGuid(null); setMessages([]); }
+    }
+  }, [refreshConvos, filter, selectConvo]);
+
+  const unarchive = useCallback(async (c) => {
+    if (!c) return;
+    await window.api.unarchive(c.guid);
+    await refreshConvos();
+  }, [refreshConvos]);
+
+  const send = useCallback(async (c, text) => {
+    const opt = { id: -Date.now(), guid: 'opt-' + Date.now(), date: Date.now(), fromMe: true, text, service: c.service, sender: 'Me', attachments: [], reactions: [], pending: true };
+    optimisticRef.current = [...optimisticRef.current, opt];
+    setMessages((prev) => [...prev, opt]);
+    const res = await window.api.send({ guid: c.guid, text, handle: c.identifier });
+    if (!res.ok) {
+      // mark the optimistic bubble as failed
+      optimisticRef.current = optimisticRef.current.map((o) =>
+        o.guid === opt.guid ? { ...o, text: text + '  ⚠️ (failed to send)', pending: false } : o
+      );
+      setMessages((prev) => prev.map((m) => (m.guid === opt.guid ? { ...m, text: text + '  ⚠️ (failed to send)', pending: false } : m)));
+      console.error('send failed:', res.error);
+    }
+    setTimeout(() => refreshMessages(c.chatId), 1200);
+  }, [refreshMessages]);
+
+  // Menu-accelerator events from the main process.
+  useEffect(() => {
+    const offs = [
+      window.api.on('archive-current', () => {
+        const c = selectedRef.current;
+        if (c) archive(c);
+      }),
+      window.api.on('toggle-archived-view', () => {
+        setFilter((f) => (f === 'inbox' ? 'archived' : 'inbox'));
+      }),
+      window.api.on('mark-read-current', () => {
+        const c = selectedRef.current;
+        if (c) window.api.openChat(c.guid).then(refreshConvos);
+      }),
+      window.api.on('nav', (dir) => navStep(dir)),
+    ];
+    return () => offs.forEach((off) => off && off());
+  }, [archive, refreshConvos]);
+
+  // keep selectedRef current for the menu handlers
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return convos
+      .filter((c) => (filter === 'archived' ? c.archived : !c.archived))
+      .filter((c) => !q || c.name.toLowerCase().includes(q) || (c.lastText || '').toLowerCase().includes(q));
+  }, [convos, filter, search]);
+
+  const navStep = useCallback((dir) => {
+    if (!visible.length) return;
+    const idx = visible.findIndex((c) => c.guid === selectedGuid);
+    const next = visible[Math.max(0, Math.min(visible.length - 1, idx + dir))];
+    if (next) selectConvo(next);
+  }, [visible, selectedGuid, selectConvo]);
+
+  const counts = useMemo(() => ({
+    unread: convos.filter((c) => !c.archived && c.unread).length,
+    archived: convos.filter((c) => c.archived).length,
+  }), [convos]);
+
+  return (
+    <div className="app">
+      <Sidebar
+        conversations={visible}
+        filter={filter}
+        setFilter={setFilter}
+        search={search}
+        setSearch={setSearch}
+        selectedGuid={selectedGuid}
+        onSelect={selectConvo}
+        onArchive={archive}
+        onUnarchive={unarchive}
+        counts={counts}
+      />
+      {selected ? (
+        <Thread
+          convo={selected}
+          messages={messages}
+          onArchive={archive}
+          onUnarchive={unarchive}
+          onSend={send}
+          loading={false}
+        />
+      ) : (
+        <div className="main">
+          <div className="no-chat">
+            <div className="big">💬</div>
+            <div>Select a conversation</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
