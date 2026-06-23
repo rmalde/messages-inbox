@@ -45,6 +45,19 @@ export default function Sidebar({
     }
   }
 
+  // When cycling (⌘⇧]/[) lands on a row beyond the rendered window, grow the
+  // window so it exists, then scroll the selection into view.
+  useEffect(() => {
+    if (!selectedGuid) return;
+    const idx = conversations.findIndex((c) => c.guid === selectedGuid);
+    if (idx >= limit) setLimit(Math.ceil((idx + 1) / PAGE) * PAGE);
+  }, [selectedGuid, conversations, limit]);
+
+  useEffect(() => {
+    const el = listRef.current && listRef.current.querySelector('.convo.selected');
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }, [selectedGuid, limit]);
+
   const shown = conversations.slice(0, limit);
 
   return (

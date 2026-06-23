@@ -191,9 +191,14 @@ export default function App() {
   useEffect(() => { visibleRef.current = visible; }, [visible]);
 
   const navStep = useCallback((dir) => {
-    if (!visible.length) return;
+    const n = visible.length;
+    if (!n) return;
     const idx = visible.findIndex((c) => c.guid === selectedGuid);
-    const next = visible[Math.max(0, Math.min(visible.length - 1, idx + dir))];
+    // Wrap around so the shortcuts cycle endlessly; with nothing selected,
+    // forward lands on the first row and backward on the last.
+    const next = idx === -1
+      ? visible[dir > 0 ? 0 : n - 1]
+      : visible[(idx + dir + n) % n];
     if (next) selectConvo(next);
   }, [visible, selectedGuid, selectConvo]);
 
