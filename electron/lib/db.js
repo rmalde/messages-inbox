@@ -184,9 +184,13 @@ async function getMessages(chatId, limit = 1000) {
     JOIN message m ON m.ROWID = cmj.message_id
     LEFT JOIN handle h ON h.ROWID = m.handle_id
     WHERE cmj.chat_id = ${Number(chatId)}
-    ORDER BY m.date ASC
+    ORDER BY m.date DESC
     LIMIT ${Number(limit)};
   `);
+
+  // We fetched the newest `limit` messages (DESC) so long conversations always
+  // include the latest; flip back to chronological order for display.
+  rows.reverse();
 
   // Attachments for these messages.
   const ids = rows.map((r) => r.id);

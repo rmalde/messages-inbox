@@ -66,6 +66,12 @@ export default function App() {
     return () => { live = false; clearInterval(id); };
   }, [selected && selected.chatId, refreshMessages]);
 
+  // Refresh the open thread the instant the conversation list detects a new
+  // message in it (snappier than waiting for the next message poll tick).
+  useEffect(() => {
+    if (selected) refreshMessages(selected.chatId);
+  }, [selected && selected.lastDate, refreshMessages]);
+
   const selectConvo = useCallback(async (c) => {
     optimisticRef.current = [];
     setMessages([]);
