@@ -74,6 +74,8 @@ export default function App() {
   }, [selected && selected.lastDate, refreshMessages]);
 
   const selectConvo = useCallback(async (c) => {
+    // Already open — don't reload/reset scroll.
+    if (selectedRef.current && selectedRef.current.guid === c.guid) return;
     optimisticRef.current = [];
     setMessages([]);
     setSelectedGuid(c.guid);
