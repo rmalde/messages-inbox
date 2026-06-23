@@ -7,12 +7,15 @@ export default function Composer({ onSend, disabled, draft }) {
   const [showEmoji, setShowEmoji] = useState(false);
   const taRef = useRef(null);
   const popRef = useRef(null);
-  const dirty = useRef(!!draft ? false : false);
+  const dirty = useRef(false);
+  const textRef = useRef(text);
+  useEffect(() => { textRef.current = text; }, [text]);
 
-  // Prefill the AI draft when it arrives — but never clobber what the user has
-  // already typed. (Composer is keyed by chat, so this only fills the current one.)
+  // Prefill the AI draft only into an EMPTY, untouched box — so an incoming
+  // message's new draft can never destroy what you've typed (or a draft you're
+  // already editing). (Composer is keyed by chat, so this only fills the open one.)
   useEffect(() => {
-    if (draft && !dirty.current) {
+    if (draft && !dirty.current && textRef.current.trim() === '') {
       setText(draft);
       setFromDraft(true);
     }

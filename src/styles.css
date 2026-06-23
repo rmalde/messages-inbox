@@ -412,16 +412,10 @@ body {
 .ai-btn:hover svg { color: #b98cff; }
 
 .draft-chip {
-  display: inline-flex; align-items: center; gap: 3px;
-  vertical-align: middle;
-  font-size: 10.5px; font-weight: 700; letter-spacing: 0.01em;
-  color: #fff;
-  background: linear-gradient(135deg, #b06bff, #6f8cff);
-  border-radius: 6px; padding: 1px 5px 1px 4px;
-  margin-right: 6px;
-  position: relative; top: -0.5px;
+  color: var(--blue-bot);
+  font-weight: 600;
 }
-.convo.selected .draft-chip { background: rgba(255, 255, 255, 0.28); }
+.convo.selected .draft-chip { color: rgba(255, 255, 255, 0.95); }
 
 /* "AI draft" flag above the composer */
 .draft-flag {
