@@ -9,7 +9,9 @@
     "dev": "concurrently -k -n vite,electron -c cyan,magenta \"vite\" \"wait-on tcp:127.0.0.1:5173 && cross-env VITE_DEV=1 electron .\"",
     "build": "vite build",
     "start": "npm run build && electron .",
-    "dist": "npm run build && electron-builder --mac"
+    "dist": "npm run build && electron-builder --mac",
+    "launch": "bash scripts/update-and-launch.sh",
+    "make-launcher": "bash scripts/make-launcher.sh"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

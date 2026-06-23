@@ -48,6 +48,25 @@ Open the `.dmg` and drag **Messages Inbox** into `/Applications`. The app is
 **unsigned** (local use), so the first launch needs a right-click → **Open** to
 get past Gatekeeper. Then grant the two permissions below.
 
+## Auto-updating launcher (always runs the latest source)
+
+The packaged `.dmg` is a frozen snapshot. For a build that updates itself every
+time you open it, use the launcher:
+
+```bash
+npm run make-launcher   # creates "Messages Inbox.app" in the repo
+```
+
+Drag that **Messages Inbox.app** into `/Applications` (and/or your Dock).
+Opening it runs `scripts/update-and-launch.sh`, which `git pull`s the latest
+source, rebuilds only if something changed, and launches the app — so each
+relaunch is up to date. (Grant Full Disk Access to this launcher's engine the
+first time; the app shows a guided screen if it's missing.)
+
+> True in-place auto-update of a distributed app (Electron's `electron-updater`)
+> requires Apple code-signing + notarization (paid Developer ID). The launcher
+> above is the free equivalent for personal use.
+
 ### Requirements / permissions
 
 - **Full Disk Access** — required to read `chat.db`. System Settings → Privacy

@@ -9,6 +9,10 @@ const db = require('./lib/db');
 const { Store } = require('./lib/store');
 const { sendMessage } = require('./lib/send');
 
+// When run from source (`electron .`) the app would otherwise show as
+// "Electron" with the default icon. Force the real identity.
+app.setName('Messages Inbox');
+
 let store;
 let win;
 
@@ -82,6 +86,12 @@ function buildMenu() {
 
 app.whenReady().then(() => {
   store = new Store(path.join(app.getPath('userData'), 'inbox-store.json'));
+  // Custom dock icon when launched from source (the packaged build already
+  // has its icns baked into the bundle).
+  try {
+    const iconPath = path.join(__dirname, '..', 'build', 'icon-1024.png');
+    if (app.dock && fs.existsSync(iconPath)) app.dock.setIcon(iconPath);
+  } catch { /* ignore */ }
   buildMenu();
   createWindow();
 
