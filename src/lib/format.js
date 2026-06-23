@@ -47,7 +47,9 @@ export function shouldSeparate(prevMs, ms) {
 
 export function initials(name) {
   if (!name) return '?';
-  const clean = name.replace(/[^\p{L}\p{N} ]/gu, '').trim();
+  // For group names ("Arjun, Michael, +4") use just the first participant.
+  const first = name.split(',')[0];
+  const clean = first.replace(/[^\p{L}\p{N} ]/gu, '').trim();
   if (!clean) return '#';
   const parts = clean.split(/\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
