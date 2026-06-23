@@ -341,25 +341,28 @@ body {
 .bubble.theirs.gp-middle { border-radius: var(--rf) var(--r) var(--r) var(--rf); }
 .bubble.theirs.gp-last   { border-radius: var(--rf) var(--r) var(--r) var(--r); }
 
-/* iMessage tail on the last bubble of a run. A colored shape masked into the
-   classic curl — transparent everywhere else, so it never paints a box over an
-   adjacent group avatar. */
+/* iMessage tail on the last bubble of a run. The tail-side bottom corner is
+   tightened so the bubble's fill reaches the corner, and a colored curl is
+   overlapped onto it (masked, so it never paints a box over a group avatar). */
+.bubble.mine.tail   { border-bottom-right-radius: 5px; }
+.bubble.theirs.tail { border-bottom-left-radius: 5px; }
+
 .bubble.tail::after {
-  content: ""; position: absolute; bottom: 0; width: 15px; height: 17px;
+  content: ""; position: absolute; bottom: 0; width: 14px; height: 16px;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
 }
 .bubble.mine.tail::after {
   right: -7px; background: var(--blue-bot);
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2015%2017'%3E%3Cpath%20d='M0%200%20C0%2010%204%2016%2015%2017%20C9%2014%208%208%208%200%20Z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2015%2017'%3E%3Cpath%20d='M0%200%20C0%2010%204%2016%2015%2017%20C9%2014%208%208%208%200%20Z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2014%2016'%3E%3Cpath%20d='M0%200%20C0%208%200%2013%2014%2016%20C8%2013%207%207%207%200%20Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2014%2016'%3E%3Cpath%20d='M0%200%20C0%208%200%2013%2014%2016%20C8%2013%207%207%207%200%20Z'/%3E%3C/svg%3E");
 }
 .bubble.mine.sms.tail::after { background: var(--green-bot); }
 .bubble.theirs.tail::after {
   left: -7px; background: var(--glass-incoming);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2015%2017'%3E%3Cpath%20d='M15%200%20C15%2010%2011%2016%200%2017%20C6%2014%207%208%207%200%20Z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2015%2017'%3E%3Cpath%20d='M15%200%20C15%2010%2011%2016%200%2017%20C6%2014%207%208%207%200%20Z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2014%2016'%3E%3Cpath%20d='M14%200%20C14%208%2014%2013%200%2016%20C6%2013%207%207%207%200%20Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2014%2016'%3E%3Cpath%20d='M14%200%20C14%208%2014%2013%200%2016%20C6%2013%207%207%207%200%20Z'/%3E%3C/svg%3E");
 }
 
 .reply-quote {
