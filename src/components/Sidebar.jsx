@@ -19,14 +19,31 @@ function ArchiveGlyph() {
   );
 }
 
+function DraftChip() {
+  return (
+    <span className="draft-chip" title="AI draft ready">
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+      </svg>
+      Draft
+    </span>
+  );
+}
+
 export default function Sidebar({
   conversations, filter, setFilter, search, setSearch,
-  selectedGuid, onSelect, onArchive, onUnarchive, counts,
+  selectedGuid, onSelect, onArchive, onUnarchive, onOpenPrompts, counts,
 }) {
   return (
     <div className="sidebar">
       <div className="sidebar-bar">
         <span className="spacer" />
+        <button className="bar-btn ai-btn" title="AI style & prompt evolution" onClick={onOpenPrompts}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2l1.6 5.2L19 9l-5.4 1.8L12 16l-1.6-5.2L5 9l5.4-1.8L12 2z" />
+            <path d="M19 14l.8 2.4L22 17l-2.2.6L19 20l-.8-2.4L16 17l2.2-.6L19 14z" />
+          </svg>
+        </button>
         <button className="bar-btn" title="Filters">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <line x1="4" y1="7" x2="20" y2="7" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="17" x2="14" y2="17" />
@@ -75,7 +92,7 @@ export default function Sidebar({
                 <span className="convo-name">{sidebarTitle(c.name, c.isGroup)}</span>
                 <span className="convo-time">{listTime(c.lastDate)}<span className="chev">›</span></span>
               </div>
-              <div className="convo-preview">{preview(c)}</div>
+              <div className="convo-preview">{c.hasDraft && <DraftChip />}{preview(c)}</div>
             </div>
             <button
               className="row-archive"

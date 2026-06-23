@@ -14,6 +14,10 @@ contextBridge.exposeInMainWorld('api', {
   checkAccess: () => ipcRenderer.invoke('access:check'),
   openAccessSettings: () => ipcRenderer.invoke('access:openSettings'),
   contactImage: (handle) => ipcRenderer.invoke('contact:image', handle),
+  draftFor: (guid) => ipcRenderer.invoke('ai:draftFor', guid),
+  dismissDraft: (guid) => ipcRenderer.invoke('ai:dismissDraft', guid),
+  aiVersions: () => ipcRenderer.invoke('ai:versions'),
+  aiStatus: () => ipcRenderer.invoke('ai:status'),
 
   // main -> renderer events (menu accelerators, theme)
   on: (channel, cb) => {
@@ -23,6 +27,7 @@ contextBridge.exposeInMainWorld('api', {
       'nav',
       'toggle-archived-view',
       'theme-changed',
+      'ai-changed',
     ];
     if (!allowed.includes(channel)) return () => {};
     const handler = (_e, ...args) => cb(...args);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Thread from './components/Thread';
+import PromptHistory from './components/PromptHistory';
 
 const CONVO_POLL = 4000;
 const MSG_POLL = 3000;
@@ -14,6 +15,8 @@ export default function App() {
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [accessError, setAccessError] = useState(null); // {needsAccess, error}
   const [toast, setToast] = useState(null); // {text, onUndo}
+  const [draft, setDraft] = useState(null); // AI draft text for the open chat
+  const [showPrompts, setShowPrompts] = useState(false); // prompt-history overlay
 
   const selectedRef = useRef(null);
   const toastTimer = useRef(null);
@@ -73,6 +76,25 @@ export default function App() {
     if (selected) refreshMessages(selected.chatId);
   }, [selected && selected.lastDate, refreshMessages]);
 
+  // Pull the AI draft for the open chat (re-fetches when a draft appears).
+  useEffect(() => {
+    if (!selectedGuid) { setDraft(null); return; }
+    let live = true;
+    window.api.draftFor(selectedGuid).then((d) => { if (live) setDraft(d || null); });
+    return () => { live = false; };
+  }, [selectedGuid, selected && selected.hasDraft]);
+
+  // React to main-process AI events (new draft / new prompt version).
+  useEffect(() => {
+    const off = window.api.on('ai-changed', () => {
+      refreshConvos();
+      if (selectedRef.current) {
+        window.api.draftFor(selectedRef.current.guid).then((d) => setDraft(d || null));
+      }
+    });
+    return () => off && off();
+  }, [refreshConvos]);
+
   const selectConvo = useCallback(async (c) => {
     // Already open — don't reload/reset scroll.
     if (selectedRef.current && selectedRef.current.guid === c.guid) return;
@@ -121,6 +143,7 @@ export default function App() {
   }, [refreshConvos]);
 
   const send = useCallback(async (c, text) => {
+    setDraft(null); // sending consumes the draft
     const opt = { id: -Date.now(), guid: 'opt-' + Date.now(), date: Date.now(), fromMe: true, text, service: c.service, sender: 'Me', attachments: [], reactions: [], pending: true };
     optimisticRef.current = [...optimisticRef.current, opt];
     setMessages((prev) => [...prev, opt]);
@@ -220,12 +243,14 @@ export default function App() {
         onSelect={selectConvo}
         onArchive={archive}
         onUnarchive={unarchive}
+        onOpenPrompts={() => setShowPrompts(true)}
         counts={counts}
       />
       {selected ? (
         <Thread
           convo={selected}
           messages={messages}
+          draft={draft}
           onArchive={archive}
           onUnarchive={unarchive}
           onSend={send}
@@ -247,6 +272,7 @@ export default function App() {
           )}
         </div>
       )}
+      {showPrompts && <PromptHistory onClose={() => setShowPrompts(false)} />}
     </div>
   );
 }

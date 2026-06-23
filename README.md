@@ -101,7 +101,35 @@ src/
 - Contact names come from your local AddressBook; unknown numbers show as the
   raw phone/email.
 
+## AI drafting (branch: `ai-drafting`)
+
+Auto-drafts replies in your voice and learns from your edits. All local except
+the model calls (Anthropic API).
+
+- **Style prompt (v0):** hand-built from ~170 of your real sent messages — tone,
+  abbreviations, emoji, length-matching, with positive/negative examples. Seeded
+  into `ai-prompts.json`; this is the start of the evolving prompt.
+- **Drafting:** Haiku 4.5 (`claude-haiku-4-5-20251001`) drafts a reply for every
+  chat with an incoming message **received today** that's awaiting your reply.
+  The draft prefills the composer (with an "AI draft" flag) and shows a **Draft**
+  chip in the sidebar. New messages get drafted as they arrive.
+- **Archiving a chat with a live draft deletes the draft** (and logs it as a
+  "didn't want to reply" signal).
+- **Continual learning:** every **20** sent/archived drafts, the diff between the
+  draft and what you actually sent is fed to a reflection step (Sonnet 4.6),
+  which rewrites the style prompt to reduce future edits. Each version is saved.
+- **Prompt-evolution viewer:** the ✦ button in the sidebar top bar opens a
+  timeline — v0 baseline, then every revision with the reflection + new prompt.
+
+Files (all in the app's userData dir): `ai-prompts.json` (versions),
+`ai-drafts.json` (per-chat drafts), `ai-learning.json` (pending edit samples).
+Key is read from `ANTHROPIC_API_KEY` (env or `~/.zshrc`).
+
+> Requires Anthropic API **credits**. Without them, the prompt viewer shows a
+> "credit balance too low" notice and no drafts are generated; everything else
+> works and drafting resumes automatically once credits are added.
+
 ## Roadmap
 
-- AI drafting: suggested replies that learn from your own writing style
-  (planned, not yet built).
+- Sendable tapbacks (blocked by macOS), clustered group avatars, search across
+  message bodies.

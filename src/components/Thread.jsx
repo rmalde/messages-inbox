@@ -8,7 +8,7 @@ function sameRun(a, b) {
   return a && b && a.fromMe === b.fromMe && a.sender === b.sender && !shouldSeparate(a.date, b.date);
 }
 
-export default function Thread({ convo, messages, onArchive, onUnarchive, onSend }) {
+export default function Thread({ convo, messages, draft, onArchive, onUnarchive, onSend }) {
   const scrollRef = useRef(null);
   const lastCount = useRef(0);
   const scrolledGuid = useRef(null); // guid we've already pinned to bottom
@@ -99,7 +99,7 @@ export default function Thread({ convo, messages, onArchive, onUnarchive, onSend
         })}
       </div>
 
-      <Composer onSend={(t) => onSend(convo, t)} />
+      <Composer key={convo.guid} draft={draft} onSend={(t) => onSend(convo, t)} />
     </div>
   );
 }

@@ -1,11 +1,22 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { EMOJI_GROUPS } from '../lib/emoji';
 
-export default function Composer({ onSend, disabled }) {
-  const [text, setText] = useState('');
+export default function Composer({ onSend, disabled, draft }) {
+  const [text, setText] = useState(draft || '');
+  const [fromDraft, setFromDraft] = useState(!!draft); // text currently equals the AI draft
   const [showEmoji, setShowEmoji] = useState(false);
   const taRef = useRef(null);
   const popRef = useRef(null);
+  const dirty = useRef(!!draft ? false : false);
+
+  // Prefill the AI draft when it arrives — but never clobber what the user has
+  // already typed. (Composer is keyed by chat, so this only fills the current one.)
+  useEffect(() => {
+    if (draft && !dirty.current) {
+      setText(draft);
+      setFromDraft(true);
+    }
+  }, [draft]);
 
   // Auto-grow textarea.
   useEffect(() => {
@@ -28,6 +39,14 @@ export default function Composer({ onSend, disabled }) {
     if (!t || disabled) return;
     onSend(t);
     setText('');
+    setFromDraft(false);
+    dirty.current = false;
+  }
+
+  function onChange(e) {
+    setText(e.target.value);
+    dirty.current = true;
+    setFromDraft(false);
   }
 
   function onKeyDown(e) {
@@ -61,14 +80,22 @@ export default function Composer({ onSend, disabled }) {
           ))}
         </div>
       )}
-      <div className="composer-input-wrap">
+      {fromDraft && (
+        <div className="draft-flag" title="AI draft — edit or send">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="M2 2l7.586 7.586" /><circle cx="11" cy="11" r="2" />
+          </svg>
+          AI draft
+        </div>
+      )}
+      <div className={'composer-input-wrap' + (fromDraft ? ' draft' : '')}>
         <textarea
           ref={taRef}
           rows={1}
           placeholder="iMessage"
           value={text}
           disabled={disabled}
-          onChange={(e) => setText(e.target.value)}
+          onChange={onChange}
           onKeyDown={onKeyDown}
         />
         <button
