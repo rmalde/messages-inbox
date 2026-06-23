@@ -146,15 +146,22 @@ body {
 .segmented button.active { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.14); }
 .segmented button.active .count { background: var(--blue-bot); color: #fff; }
 
-.convo-list { flex: 1; overflow-y: auto; padding: 4px 12px 14px; }
+.convo-list { flex: 1; overflow-y: auto; padding: 4px 8px 14px; }
 
 .convo {
-  display: flex; gap: 13px; align-items: center;
-  padding: 9px 12px 9px 32px;   /* roomier rows + a left lane for the unread dot */
-  border-radius: 11px;
+  display: flex; gap: 11px; align-items: center;
+  padding: 11px 10px 11px 24px;   /* taller rows + a left lane for the unread dot */
+  border-radius: 10px;
   cursor: pointer; position: relative;
   transition: background 0.1s ease;
 }
+/* hairline separator between rows, inset to align under the text (like Mail) */
+.convo:not(:last-child)::after {
+  content: ""; position: absolute; left: 75px; right: 6px; bottom: 0; height: 1px;
+  background: var(--separator);
+}
+.convo.selected::after,
+.convo:has(+ .convo.selected)::after { display: none; }
 .convo:hover { background: var(--hover); }
 .convo.selected { background: var(--blue-bot); }
 .convo.selected .convo-name,
@@ -163,7 +170,7 @@ body {
 .convo.selected .convo-preview { opacity: 0.92; }
 
 .unread-dot {
-  position: absolute; left: 13px; top: 50%;
+  position: absolute; left: 11px; top: 50%;
   transform: translateY(-50%);
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--blue-bot);
@@ -391,6 +398,28 @@ body {
 .btn-primary:hover { filter: brightness(1.08); }
 .btn-secondary { background: var(--hover); color: var(--text); }
 .btn-secondary:hover { background: var(--selected); }
+
+/* Archive toast (bottom-left) */
+.toast {
+  position: fixed; left: 16px; bottom: 16px; z-index: 300;
+  display: flex; align-items: center; gap: 16px;
+  background: var(--composer-bg); color: var(--text);
+  border: 1px solid var(--separator);
+  border-radius: 11px; padding: 11px 15px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.34);
+  font-size: 13px; font-weight: 500;
+  -webkit-app-region: no-drag;
+  animation: toastIn 0.24s cubic-bezier(0.2, 1, 0.3, 1);
+}
+.toast-undo {
+  background: none; border: none; color: var(--blue-bot);
+  font-weight: 700; font-size: 13px; cursor: pointer; padding: 0;
+}
+.toast-undo:hover { text-decoration: underline; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .no-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-tertiary); gap: 12px; }
 .no-chat .big {

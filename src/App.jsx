@@ -13,8 +13,10 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [accessError, setAccessError] = useState(null); // {needsAccess, error}
+  const [toast, setToast] = useState(null); // {text, onUndo}
 
   const selectedRef = useRef(null);
+  const toastTimer = useRef(null);
   const optimisticRef = useRef([]); // pending sent messages, by guid
 
   const selected = useMemo(
@@ -74,6 +76,12 @@ export default function App() {
     setConvos((prev) => prev.map((x) => (x.guid === c.guid ? { ...x, unread: false } : x)));
   }, []);
 
+  const showToast = useCallback((text, onUndo) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ text, onUndo });
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }, []);
+
   const archive = useCallback(async (c) => {
     if (!c) return;
     await window.api.archive(c.guid);
@@ -85,7 +93,13 @@ export default function App() {
       if (next) selectConvo(next);
       else { setSelectedGuid(null); setMessages([]); }
     }
-  }, [refreshConvos, filter, selectConvo]);
+    showToast('Conversation archived', async () => {
+      await window.api.unarchive(c.guid);
+      await refreshConvos();
+      if (filter === 'inbox') selectConvo(c);
+      setToast(null);
+    });
+  }, [refreshConvos, filter, selectConvo, showToast]);
 
   const unarchive = useCallback(async (c) => {
     if (!c) return;
@@ -208,6 +222,14 @@ export default function App() {
             <div className="big">💬</div>
             <div>Select a conversation</div>
           </div>
+        </div>
+      )}
+      {toast && (
+        <div className="toast">
+          <span>{toast.text}</span>
+          {toast.onUndo && (
+            <button className="toast-undo" onClick={() => toast.onUndo()}>Undo</button>
+          )}
         </div>
       )}
     </div>
