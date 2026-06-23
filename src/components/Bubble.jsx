@@ -39,8 +39,8 @@ export default function Bubble({ msg, groupPos, isGroup, animate }) {
       <div className="bubble-wrap">
         {isGroup && !mine && (
           tail
-            ? <Avatar name={msg.sender} size="sm" />
-            : <span style={{ width: 28, flexShrink: 0 }} />
+            ? <Avatar name={msg.sender} handle={msg.handle} size="sm" />
+            : <span style={{ width: 26, flexShrink: 0 }} />
         )}
         <div className={cls}>
           {msg.replyPreview && (

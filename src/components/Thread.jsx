@@ -47,7 +47,7 @@ export default function Thread({ convo, messages, onArchive, onUnarchive, onSend
     <div className="main">
       <div className="thread-header">
         <div className="header-center">
-          <Avatar name={convo.name} size="sm" />
+          <Avatar name={convo.name} size="sm" handle={convo.isGroup ? undefined : convo.identifier} />
           <span className="title">{convo.name}<span className="chev">›</span></span>
         </div>
         <div className="thread-actions">

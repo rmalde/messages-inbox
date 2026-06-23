@@ -69,7 +69,7 @@ export default function Sidebar({
             onClick={() => onSelect(c)}
           >
             {c.unread && <div className="unread-dot" />}
-            <Avatar name={c.name} />
+            <Avatar name={c.name} handle={c.isGroup ? undefined : c.identifier} />
             <div className="convo-body">
               <div className="convo-row1">
                 <span className="convo-name">{c.name}</span>

@@ -91,4 +91,64 @@ async function getContactMap() {
   return map;
 }
 
-module.exports = { getContactMap };
+// ---- Contact photos -------------------------------------------------------
+// Images are stored inline in the AddressBook DB with a 1-byte prefix (0x01)
+// followed by raw JPEG/PNG bytes. (Some records hold a tiny ~38-byte reference
+// instead of real data — those are skipped.)
+
+let imgCache = null;
+let imgCacheTime = 0;
+
+function blobToDataUrl(hex) {
+  if (!hex || hex.length < 200) return null; // skip references / empties
+  const buf = Buffer.from(hex, 'hex').subarray(1); // drop the 0x01 prefix
+  let mime = 'image/jpeg';
+  if (buf[0] === 0x89 && buf[1] === 0x50) mime = 'image/png';
+  else if (buf[0] !== 0xff || buf[1] !== 0xd8) return null; // not a known image
+  return `data:${mime};base64,${buf.toString('base64')}`;
+}
+
+async function getImageMap() {
+  const now = Date.now();
+  if (imgCache && now - imgCacheTime < TTL) return imgCache;
+
+  const map = {};
+  const pick = `CASE
+      WHEN length(r.ZTHUMBNAILIMAGEDATA) > 1000 THEN hex(r.ZTHUMBNAILIMAGEDATA)
+      WHEN length(r.ZIMAGEDATA) > 1000 THEN hex(r.ZIMAGEDATA)
+      ELSE NULL END`;
+  for (const db of findDbs()) {
+    const phones = await query(
+      db,
+      `SELECT p.ZFULLNUMBER AS handle, ${pick} AS img
+       FROM ZABCDPHONENUMBER p JOIN ZABCDRECORD r ON r.Z_PK = p.ZOWNER
+       WHERE p.ZFULLNUMBER IS NOT NULL AND (${pick}) IS NOT NULL;`
+    );
+    for (const row of phones) {
+      const url = blobToDataUrl(row.img);
+      if (url) map[normalizePhone(row.handle)] = url;
+    }
+    const emails = await query(
+      db,
+      `SELECT e.ZADDRESS AS handle, ${pick} AS img
+       FROM ZABCDEMAILADDRESS e JOIN ZABCDRECORD r ON r.Z_PK = e.ZOWNER
+       WHERE e.ZADDRESS IS NOT NULL AND (${pick}) IS NOT NULL;`
+    );
+    for (const row of emails) {
+      const url = blobToDataUrl(row.img);
+      if (url) map[row.handle.toLowerCase()] = url;
+    }
+  }
+
+  imgCache = map;
+  imgCacheTime = now;
+  return map;
+}
+
+async function getContactImage(handle) {
+  if (!handle) return null;
+  const map = await getImageMap();
+  return map[normalizePhone(handle)] || map[String(handle).toLowerCase()] || null;
+}
+
+module.exports = { getContactMap, getContactImage };

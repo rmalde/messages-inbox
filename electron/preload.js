@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   isDark: () => ipcRenderer.invoke('theme:isDark'),
   checkAccess: () => ipcRenderer.invoke('access:check'),
   openAccessSettings: () => ipcRenderer.invoke('access:openSettings'),
+  contactImage: (handle) => ipcRenderer.invoke('contact:image', handle),
 
   // main -> renderer events (menu accelerators, theme)
   on: (channel, cb) => {

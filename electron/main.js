@@ -8,6 +8,7 @@ const os = require('os');
 const db = require('./lib/db');
 const { Store } = require('./lib/store');
 const { sendMessage } = require('./lib/send');
+const { getContactImage } = require('./lib/contacts');
 
 // When run from source (`electron .`) the app would otherwise show as
 // "Electron" with the default icon. Force the real identity.
@@ -190,3 +191,7 @@ ipcMain.handle('attachment:data', async (_e, filePath) => {
 });
 
 ipcMain.handle('theme:isDark', () => nativeTheme.shouldUseDarkColors);
+
+ipcMain.handle('contact:image', async (_e, handle) => {
+  try { return await getContactImage(handle); } catch { return null; }
+});
