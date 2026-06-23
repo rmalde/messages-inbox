@@ -19,8 +19,16 @@ function useContactImage(handle) {
   return img;
 }
 
+const PersonGlyph = () => (
+  <svg width="52%" height="52%" viewBox="0 0 24 24" fill="currentColor" opacity="0.9">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6v1H4z" />
+  </svg>
+);
+
 // A single round avatar — contact photo if we have one, else initials on a
-// muted gradient tile.
+// muted gradient tile. A nameless phone/email handle gets a neutral person
+// glyph instead of meaningless digit "initials".
 function Single({ name, handle, className }) {
   const img = useContactImage(handle);
   if (img) {
@@ -31,10 +39,12 @@ function Single({ name, handle, className }) {
       />
     );
   }
+  const label = initials(name || handle);
+  const noName = !name || !/[A-Za-z]/.test(name); // a bare phone/email → no real initials
   const [a, b] = avatarGradient(name || handle);
   return (
     <div className={className} style={{ background: `linear-gradient(135deg, ${a}, ${b})` }}>
-      {initials(name || handle)}
+      {noName ? <PersonGlyph /> : label}
     </div>
   );
 }

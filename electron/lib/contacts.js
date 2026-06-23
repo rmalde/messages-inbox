@@ -96,9 +96,6 @@ async function getContactMap() {
 // followed by raw JPEG/PNG bytes. (Some records hold a tiny ~38-byte reference
 // instead of real data — those are skipped.)
 
-let imgCache = null;
-let imgCacheTime = 0;
-
 function blobToDataUrl(hex) {
   if (!hex || hex.length < 200) return null; // skip references / empties
   if (hex.length > 4_000_000) return null; // ~2MB image cap (memory safety)
@@ -109,47 +106,80 @@ function blobToDataUrl(hex) {
   return `data:${mime};base64,${buf.toString('base64')}`;
 }
 
-async function getImageMap() {
-  const now = Date.now();
-  if (imgCache && now - imgCacheTime < TTL) return imgCache;
+// SQL fragment that picks the better of the two image columns.
+const PICK_IMG = `CASE
+    WHEN length(r.ZTHUMBNAILIMAGEDATA) > 1000 THEN hex(r.ZTHUMBNAILIMAGEDATA)
+    WHEN length(r.ZIMAGEDATA) > 1000 THEN hex(r.ZIMAGEDATA)
+    ELSE NULL END`;
 
-  const map = {};
-  const pick = `CASE
-      WHEN length(r.ZTHUMBNAILIMAGEDATA) > 1000 THEN hex(r.ZTHUMBNAILIMAGEDATA)
-      WHEN length(r.ZIMAGEDATA) > 1000 THEN hex(r.ZIMAGEDATA)
-      ELSE NULL END`;
+// Lightweight index of which handles HAVE a photo — handle -> [{db, num, kind}].
+// Crucially this carries NO image bytes (loading every contact's photo at once
+// was blowing the heap); the actual photo is fetched one at a time on demand.
+let idxCache = null;
+let idxCacheTime = 0;
+
+async function getPhotoIndex() {
+  const now = Date.now();
+  if (idxCache && now - idxCacheTime < TTL) return idxCache;
+
+  const idx = {};
+  const add = (key, entry) => { (idx[key] = idx[key] || []).push(entry); };
   for (const db of findDbs()) {
     const phones = await query(
       db,
-      `SELECT p.ZFULLNUMBER AS handle, ${pick} AS img
+      `SELECT p.ZFULLNUMBER AS num
        FROM ZABCDPHONENUMBER p JOIN ZABCDRECORD r ON r.Z_PK = p.ZOWNER
-       WHERE p.ZFULLNUMBER IS NOT NULL AND (${pick}) IS NOT NULL;`
+       WHERE p.ZFULLNUMBER IS NOT NULL
+         AND (length(r.ZTHUMBNAILIMAGEDATA) > 1000 OR length(r.ZIMAGEDATA) > 1000);`
     );
     for (const row of phones) {
-      const url = blobToDataUrl(row.img);
-      if (url) map[normalizePhone(row.handle)] = url;
+      if (row.num) add(normalizePhone(row.num), { db, num: row.num, kind: 'phone' });
     }
     const emails = await query(
       db,
-      `SELECT e.ZADDRESS AS handle, ${pick} AS img
+      `SELECT e.ZADDRESS AS addr
        FROM ZABCDEMAILADDRESS e JOIN ZABCDRECORD r ON r.Z_PK = e.ZOWNER
-       WHERE e.ZADDRESS IS NOT NULL AND (${pick}) IS NOT NULL;`
+       WHERE e.ZADDRESS IS NOT NULL
+         AND (length(r.ZTHUMBNAILIMAGEDATA) > 1000 OR length(r.ZIMAGEDATA) > 1000);`
     );
     for (const row of emails) {
-      const url = blobToDataUrl(row.img);
-      if (url) map[row.handle.toLowerCase()] = url;
+      if (row.addr) add(row.addr.toLowerCase(), { db, num: row.addr, kind: 'email' });
     }
   }
 
-  imgCache = map;
-  imgCacheTime = now;
-  return map;
+  idxCache = idx;
+  idxCacheTime = now;
+  return idx;
 }
+
+// Per-handle result cache so repeated avatar renders don't re-query.
+const urlCache = new Map();
 
 async function getContactImage(handle) {
   if (!handle) return null;
-  const map = await getImageMap();
-  return map[normalizePhone(handle)] || map[String(handle).toLowerCase()] || null;
+  const key = normalizePhone(handle);
+  if (urlCache.has(key)) return urlCache.get(key);
+
+  const idx = await getPhotoIndex();
+  const hits = idx[key] || idx[String(handle).toLowerCase()];
+  if (!hits || !hits.length) { urlCache.set(key, null); return null; }
+
+  for (const h of hits) {
+    const col = h.kind === 'phone' ? 'p.ZFULLNUMBER' : 'e.ZADDRESS';
+    const join = h.kind === 'phone'
+      ? 'ZABCDPHONENUMBER p JOIN ZABCDRECORD r ON r.Z_PK = p.ZOWNER'
+      : 'ZABCDEMAILADDRESS e JOIN ZABCDRECORD r ON r.Z_PK = e.ZOWNER';
+    const esc = String(h.num).replace(/'/g, "''");
+    const rows = await query(
+      h.db,
+      `SELECT ${PICK_IMG} AS img FROM ${join}
+       WHERE ${col} = '${esc}' AND (${PICK_IMG}) IS NOT NULL LIMIT 1;`
+    );
+    const url = rows[0] && blobToDataUrl(rows[0].img);
+    if (url) { urlCache.set(key, url); return url; }
+  }
+  urlCache.set(key, null);
+  return null;
 }
 
 module.exports = { getContactMap, getContactImage };
