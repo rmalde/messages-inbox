@@ -10,10 +10,10 @@ function sameRun(a, b) {
 
 export default function Thread({ convo, messages, draft, onArchive, onUnarchive, onSend }) {
   const scrollRef = useRef(null);
-  const lastCount = useRef(0);
-  const scrolledGuid = useRef(null); // guid we've already pinned to bottom
-  const mountedAt = useRef(0);
-  const seenIds = useRef(new Set()); // message ids already rendered for this chat
+  const lastId = useRef(null);          // id of the last rendered message
+  const scrolledGuid = useRef(null);    // guid we've already pinned to bottom
+  const atBottom = useRef(true);        // was the user pinned to the bottom?
+  const seenIds = useRef(new Set());    // message ids already rendered for this chat
 
   // Reset the "seen" set when switching conversations.
   useEffect(() => { seenIds.current = new Set(); }, [convo.guid]);
@@ -23,6 +23,13 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
     for (const m of messages) seenIds.current.add(m.id);
   }, [messages]);
 
+  // Track whether the user is parked at the bottom *before* a new message lands,
+  // so a tall incoming bubble can't fool a post-insert distance check.
+  function onScroll() {
+    const el = scrollRef.current;
+    if (el) atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }
+
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -30,22 +37,26 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
     // "scroll" an empty list and then never re-pin once content arrives.
     if (messages.length === 0) return;
 
+    const last = messages[messages.length - 1];
     const chatChanged = scrolledGuid.current !== convo.guid;
-    const grew = messages.length !== lastCount.current;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 260;
+    const isNew = last.id !== lastId.current;
+    const pin = () => { el.scrollTop = el.scrollHeight; };
 
     if (chatChanged) {
-      const jump = () => { el.scrollTop = el.scrollHeight; };
       el.style.scrollBehavior = 'auto';
-      jump();
-      requestAnimationFrame(jump);                       // after layout settles
-      setTimeout(() => { jump(); el.style.scrollBehavior = 'smooth'; }, 140); // after async images
+      pin();
+      requestAnimationFrame(pin);                        // after layout settles
+      setTimeout(() => { pin(); el.style.scrollBehavior = 'smooth'; }, 140); // after async images
       scrolledGuid.current = convo.guid;
-      mountedAt.current = Date.now();
-    } else if (grew && nearBottom) {
-      el.scrollTop = el.scrollHeight;
+      atBottom.current = true;
+    } else if (isNew && (atBottom.current || last.fromMe)) {
+      // New message: follow it to the bottom if the user was already there, or
+      // whenever it's one they just sent (incl. from another device).
+      pin();
+      requestAnimationFrame(pin);                        // catch late-loading images
+      atBottom.current = true;
     }
-    lastCount.current = messages.length;
+    lastId.current = last.id;
   }, [messages, convo.guid]);
 
   // Only animate bubbles that arrive after the conversation is already open,
@@ -77,7 +88,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
         </div>
       </div>
 
-      <div className="messages" ref={scrollRef}>
+      <div className="messages" ref={scrollRef} onScroll={onScroll}>
         {messages.map((m, i) => {
           const prev = messages[i - 1];
           const next = messages[i + 1];
