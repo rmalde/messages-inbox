@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   isDark: () => ipcRenderer.invoke('theme:isDark'),
   checkAccess: () => ipcRenderer.invoke('access:check'),
   openAccessSettings: () => ipcRenderer.invoke('access:openSettings'),
+  openExternal: (url) => ipcRenderer.invoke('open:external', url),
   contactImage: (handle) => ipcRenderer.invoke('contact:image', handle),
   draftFor: (guid) => ipcRenderer.invoke('ai:draftFor', guid),
   dismissDraft: (guid) => ipcRenderer.invoke('ai:dismissDraft', guid),

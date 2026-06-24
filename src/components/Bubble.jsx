@@ -10,7 +10,7 @@ function linkify(text) {
   const parts = text.split(URL_RE);
   return parts.map((p, i) =>
     URL_RE.test(p) ? (
-      <a key={i} href={p} onClick={(e) => { e.preventDefault(); window.open(p); }}>{p}</a>
+      <a key={i} href={p} onClick={(e) => { e.preventDefault(); window.api.openExternal(p); }}>{p}</a>
     ) : (
       <span key={i}>{p}</span>
     )

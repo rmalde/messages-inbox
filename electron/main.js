@@ -40,6 +40,17 @@ function createWindow() {
     },
   });
 
+  // Open any link in the user's default browser (e.g. their logged-in Chrome
+  // window) rather than spawning a blank, profile-less Electron window.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  win.webContents.on('will-navigate', (e, url) => {
+    const here = process.env.VITE_DEV ? 'http://127.0.0.1:5173' : 'file://';
+    if (!url.startsWith(here)) { e.preventDefault(); if (/^https?:\/\//i.test(url)) shell.openExternal(url); }
+  });
+
   if (process.env.VITE_DEV) {
     win.loadURL('http://127.0.0.1:5173');
   } else {
@@ -155,6 +166,11 @@ ipcMain.handle('access:check', async () => diagnoseAccess());
 
 ipcMain.handle('access:openSettings', async () => {
   await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles');
+  return true;
+});
+
+ipcMain.handle('open:external', async (_e, url) => {
+  if (typeof url === 'string' && /^https?:\/\//i.test(url)) await shell.openExternal(url);
   return true;
 });
 
