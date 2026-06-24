@@ -190,17 +190,34 @@ export default function App() {
 
   useEffect(() => { visibleRef.current = visible; }, [visible]);
 
+  // Read from refs (not render-scoped state) so the function is stable and the
+  // menu/keyboard handlers never act on a stale selection or list.
   const navStep = useCallback((dir) => {
-    const n = visible.length;
+    const list = visibleRef.current;
+    const n = list.length;
     if (!n) return;
-    const idx = visible.findIndex((c) => c.guid === selectedGuid);
+    const curGuid = selectedRef.current && selectedRef.current.guid;
+    const idx = list.findIndex((c) => c.guid === curGuid);
     // Wrap around so the shortcuts cycle endlessly; with nothing selected,
     // forward lands on the first row and backward on the last.
     const next = idx === -1
-      ? visible[dir > 0 ? 0 : n - 1]
-      : visible[(idx + dir + n) % n];
+      ? list[dir > 0 ? 0 : n - 1]
+      : list[(idx + dir + n) % n];
     if (next) selectConvo(next);
-  }, [visible, selectedGuid, selectConvo]);
+  }, [selectConvo]);
+
+  // Cmd+Shift+] / Cmd+Shift+[ cycle conversations. Handled in the renderer
+  // (e.code is keyboard-layout independent) rather than via a menu accelerator,
+  // which proved unreliable for these keys.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!e.metaKey || !e.shiftKey || e.altKey || e.ctrlKey) return;
+      if (e.code === 'BracketRight') { e.preventDefault(); navStep(1); }
+      else if (e.code === 'BracketLeft') { e.preventDefault(); navStep(-1); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navStep]);
 
   const counts = useMemo(() => ({
     inbox: convos.filter((c) => !c.archived).length,

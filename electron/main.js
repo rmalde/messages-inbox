@@ -78,10 +78,6 @@ function buildMenu() {
           accelerator: 'CmdOrCtrl+Up',
           click: () => win && win.webContents.send('nav', -1),
         },
-        // Cmd+Shift+]/[ also cycle conversations (Safari-style). Hidden so the
-        // menu isn't cluttered; the accelerator still fires on macOS.
-        { label: 'Next Conversation (])', accelerator: 'CmdOrCtrl+Shift+]', visible: false, click: () => win && win.webContents.send('nav', 1) },
-        { label: 'Previous Conversation ([)', accelerator: 'CmdOrCtrl+Shift+[', visible: false, click: () => win && win.webContents.send('nav', -1) },
         { type: 'separator' },
         {
           label: 'Toggle Archived View',
