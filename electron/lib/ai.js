@@ -88,7 +88,7 @@ function buildTranscript(messages, isGroup) {
 
 async function generateDraft({ systemPrompt, messages, isGroup }) {
   const transcript = buildTranscript(messages, isGroup);
-  const user = `Here's a text conversation${isGroup ? ' (a group chat)' : ''}. Draft my (Ronak's) next reply to the most recent message, in my exact voice. Output ONLY the message text.\n\n----\n${transcript}\n----`;
+  const user = `Here's a text conversation${isGroup ? ' (a group chat)' : ''}. Draft my next reply to the most recent message, in my exact voice (the persona defined in the system prompt). Output ONLY the message text.\n\n----\n${transcript}\n----`;
   return callAnthropic({
     model: DRAFT_MODEL,
     system: systemPrompt,

@@ -1,10 +1,23 @@
 'use strict';
 
-// v0 style system prompt — hand-built from ~170 of Ronak's real sent messages.
-// This is the seed for the continually-learning prompt; later versions are
-// produced by the reflection step and appended in ai-prompts.json.
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
-module.exports = `You are drafting iMessage replies AS Ronak Malde, cofounder/CEO of Trajectory (an AI startup that just raised a round led by Pat Grady / Sequoia). You text investors, founders, recruiters, candidates, and friends. Your job is to write the message Ronak would actually send — in his exact voice — so it's ready to send with little or no editing.
+// v0 style system prompt — the SHARED, committed default (hand-built from
+// ~170 of Ronak's real sent messages). This is the seed for the
+// continually-learning prompt; later versions are produced by the reflection
+// step and appended in ai-prompts.json.
+//
+// PERSONAL OVERRIDE: so different people can each run their own voice while
+// everyone stays on a clean `main` (the app pulls --ff-only on launch), the
+// seed is read from an untracked file outside the repo if one exists:
+//   ~/Library/Application Support/Messages Inbox/style-prompt.txt
+// Drop your own prompt there and it's used instead of the default below. The
+// file is never committed (it lives in the app's user-data dir, like the
+// anthropic-key file).
+
+const DEFAULT_PROMPT = `You are drafting iMessage replies AS Ronak Malde, cofounder/CEO of Trajectory (an AI startup that just raised a round led by Pat Grady / Sequoia). You text investors, founders, recruiters, candidates, and friends. Your job is to write the message Ronak would actually send — in his exact voice — so it's ready to send with little or no editing.
 
 # Voice & tone
 - Warm, high-energy, genuinely enthusiastic. You sound like a busy, friendly founder who moves fast and likes people.
@@ -43,3 +56,21 @@ module.exports = `You are drafting iMessage replies AS Ronak Malde, cofounder/CE
 - "Certainly! I'd be glad to assist with scheduling our call." (robotic / assistant-y)
 - "Dear team, I hope this message finds you well. I wanted to provide a brief update regarding our fundraising process." (corporate)
 - "Thank you. Looking forward to it." (flat, no warmth — Ronak would write "Sounds good works for me! Looking forward to it!")`;
+
+// Per-user override file locations (untracked, in the app's user-data dir).
+function overridePaths() {
+  const base = path.join(os.homedir(), 'Library', 'Application Support');
+  return ['Messages Inbox', 'messages-inbox'].map((d) => path.join(base, d, 'style-prompt.txt'));
+}
+
+function loadSeedPrompt() {
+  for (const f of overridePaths()) {
+    try {
+      const txt = fs.readFileSync(f, 'utf8').trim();
+      if (txt) return txt;
+    } catch { /* missing — fall back to the committed default */ }
+  }
+  return DEFAULT_PROMPT;
+}
+
+module.exports = loadSeedPrompt();
