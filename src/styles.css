@@ -208,27 +208,27 @@ body {
 .avatar {
   width: 42px; height: 42px; border-radius: 50%;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 600; font-size: 15px; letter-spacing: 0;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.14);
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -2px 4px rgba(0,0,0,0.12);
+  color: #fff; font-weight: 600; font-size: 16px; letter-spacing: 0.3px;
+  box-shadow: 0 1px 2.5px rgba(0,0,0,0.18);
 }
 .avatar.sm { width: 26px; height: 26px; font-size: 10px; }
 
-/* Group chat: two small overlapping bubbles (à la Messages.app). */
+/* Group chat: two clean overlapping bubbles (à la Messages.app), front larger
+   than back for a nicely layered look. */
 .avatar.group { position: relative; background: none; box-shadow: none; overflow: visible; }
 .avatar.group .g-tile {
   position: absolute; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 600; letter-spacing: 0;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.14);
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.45), 0 0 0 2px var(--bg);
+  color: #fff; font-weight: 600; letter-spacing: 0.2px;
+  box-shadow: 0 0 0 2px var(--bg);
   background-size: cover; background-position: center;
 }
-.avatar.group .g-tile.back  { width: 64%; height: 64%; top: 0; left: 0; font-size: 9px; }
-.avatar.group .g-tile.front { width: 64%; height: 64%; bottom: 0; right: 0; font-size: 9px; }
+.avatar.group .g-tile.back  { width: 60%; height: 60%; top: -1px; left: -1px; font-size: 9px; z-index: 1; }
+.avatar.group .g-tile.front { width: 68%; height: 68%; bottom: -1px; right: -1px; font-size: 10px; z-index: 2; box-shadow: 0 0 0 2px var(--bg), 0 1px 2.5px rgba(0,0,0,0.18); }
 .avatar.group.sm .g-tile { font-size: 7px; }
 /* On the selected (blue) row the ring should match the blue, not the page bg. */
-.convo.selected .avatar.group .g-tile { box-shadow: inset 0 1px 1px rgba(255,255,255,0.45), 0 0 0 2px var(--blue-bot); }
+.convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px var(--blue-bot); }
+.convo.selected .avatar.group .g-tile.front { box-shadow: 0 0 0 2px var(--blue-bot), 0 1px 2.5px rgba(0,0,0,0.22); }
 
 .convo-body { flex: 1; min-width: 0; }
 .convo-row1 { display: flex; align-items: baseline; gap: 6px; }

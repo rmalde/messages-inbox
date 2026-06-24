@@ -77,13 +77,12 @@ export function initials(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-// Soft Apple-style avatar gradients — a light tint up top easing into a richer
-// tone of the same hue. Lighter and gently more saturated than fully muted, but
-// still calmer than iMessage's vivid palette.
+// Apple-style avatar gradients — a lighter tint up top easing into a richer
+// tone of the same hue, vertically (matching iMessage's clean colored circles).
 const AVATAR_COLORS = [
-  ['#F2A39B', '#E8786F'], ['#F2C794', '#E5A663'], ['#EBD98C', '#D8BD5E'],
-  ['#A6D9A9', '#7DC288'], ['#9FD2E6', '#74B5D4'], ['#A6BBE0', '#7E97CC'],
-  ['#C3AEDB', '#9E84C2'], ['#E6B0C8', '#CE8AAC'], ['#BBC0CA', '#969EAC'],
+  ['#FF8D85', '#F0584E'], ['#FFB66B', '#F2913A'], ['#FFD76A', '#F3C53D'],
+  ['#86E0A3', '#46C76E'], ['#7FD0F2', '#3AA7E0'], ['#8FB4F2', '#5E86E6'],
+  ['#C3A6F0', '#9B6FE0'], ['#F2A0C8', '#E069A6'], ['#B6BECC', '#8A93A3'],
 ];
 
 export function avatarGradient(name) {

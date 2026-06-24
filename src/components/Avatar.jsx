@@ -43,7 +43,7 @@ function Single({ name, handle, className }) {
   const noName = !name || !/[A-Za-z]/.test(name); // a bare phone/email → no real initials
   const [a, b] = avatarGradient(name || handle);
   return (
-    <div className={className} style={{ background: `linear-gradient(160deg, ${a} 8%, ${b})` }}>
+    <div className={className} style={{ background: `linear-gradient(180deg, ${a}, ${b})` }}>
       {noName ? <PersonGlyph /> : label}
     </div>
   );
