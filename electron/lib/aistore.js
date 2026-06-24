@@ -25,8 +25,9 @@ class AiStore {
       this.prompts = { versions: [{ version: 0, createdAt: Date.now(), reflection: null, systemPrompt: V0_PROMPT, sampleCount: 0 }] };
       writeJson(this.promptsFile, this.prompts);
     }
-    this.drafts = readJson(this.draftsFile, { byGuid: {} });
-    if (!this.drafts.byGuid) this.drafts = { byGuid: {} };
+    this.drafts = readJson(this.draftsFile, { byGuid: {}, skipByGuid: {} });
+    if (!this.drafts.byGuid) this.drafts = { byGuid: {}, skipByGuid: {} };
+    if (!this.drafts.skipByGuid) this.drafts.skipByGuid = {};
     this.learning = readJson(this.learningFile, { pending: [], recent: [], totalSamples: 0 });
     if (!this.learning.pending) this.learning = { pending: [], recent: [], totalSamples: 0 };
     if (!this.learning.recent) this.learning.recent = [];
@@ -61,6 +62,22 @@ class AiStore {
   deleteDraft(guid) {
     if (this.drafts.byGuid[guid]) {
       delete this.drafts.byGuid[guid];
+      writeJson(this.draftsFile, this.drafts);
+    }
+  }
+
+  // ---- skip decisions ----
+  // The model decided no reply is warranted for the incoming message dated
+  // `forDate`. Remembering this (rather than storing a draft) stops us redrafting
+  // the same message every tick, while never showing a draft chip.
+  getSkip(guid) { return this.drafts.skipByGuid[guid] || null; }
+  setSkip(guid, forDate, name, incomingText) {
+    this.drafts.skipByGuid[guid] = { forDate, name, incomingText, createdAt: Date.now() };
+    writeJson(this.draftsFile, this.drafts);
+  }
+  clearSkip(guid) {
+    if (this.drafts.skipByGuid[guid]) {
+      delete this.drafts.skipByGuid[guid];
       writeJson(this.draftsFile, this.drafts);
     }
   }

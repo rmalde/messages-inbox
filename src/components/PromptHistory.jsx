@@ -10,6 +10,11 @@ function statusLine(s) {
 }
 
 function editKind(s) {
+  if (s.skipped) {
+    return (s.sent || '').trim()
+      ? { tag: "Skipped — should've drafted", cls: 'k-edit' }
+      : { tag: 'Skipped ✓ (no reply)', cls: 'k-same' };
+  }
   if (s.archived) return { tag: 'Archived — no reply', cls: 'k-arch' };
   if ((s.draft || '').trim() === (s.sent || '').trim()) return { tag: 'Sent as-is', cls: 'k-same' };
   return { tag: 'Edited', cls: 'k-edit' };
@@ -91,11 +96,22 @@ export default function PromptHistory({ onClose }) {
                     <span className="pv-date">{new Date(s.ts).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                   </div>
                   {s.incomingText ? <div className="edit-row"><span className="edit-lbl">They</span><span>{s.incomingText}</span></div> : null}
-                  <div className="edit-row"><span className="edit-lbl">Draft</span><span className="edit-draft">{s.draft}</span></div>
-                  <div className="edit-row">
-                    <span className="edit-lbl">{s.archived ? '' : 'Sent'}</span>
-                    <span className="edit-sent">{s.archived ? <em>archived without replying</em> : s.sent}</span>
-                  </div>
+                  {s.skipped ? (
+                    <>
+                      <div className="edit-row"><span className="edit-lbl">AI</span><span className="edit-draft"><em>chose not to draft</em></span></div>
+                      {(s.sent || '').trim()
+                        ? <div className="edit-row"><span className="edit-lbl">Sent</span><span className="edit-sent">{s.sent}</span></div>
+                        : <div className="edit-row"><span className="edit-lbl" /><span className="edit-sent"><em>left without replying — good skip</em></span></div>}
+                    </>
+                  ) : (
+                    <>
+                      <div className="edit-row"><span className="edit-lbl">Draft</span><span className="edit-draft">{s.draft}</span></div>
+                      <div className="edit-row">
+                        <span className="edit-lbl">{s.archived ? '' : 'Sent'}</span>
+                        <span className="edit-sent">{s.archived ? <em>archived without replying</em> : s.sent}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}

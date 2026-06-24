@@ -187,9 +187,15 @@ ipcMain.handle('chat:archive', async (_e, guid) => {
   store.archive(guid, Date.now());
   // Archiving with a live draft = the draft was unwanted (target -> empty).
   const draft = aiStore && aiStore.getDraft(guid);
+  const skip = aiStore && aiStore.getSkip(guid);
   if (draft) {
     const reached = aiStore.recordSample({ guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: '', archived: true });
     aiStore.deleteDraft(guid);
+    if (reached) maybeReflect();
+  } else if (skip) {
+    // Archived a chat the model already chose to skip -> the skip was correct.
+    const reached = aiStore.recordSample({ guid, name: skip.name || '', incomingText: skip.incomingText || '', draft: '', sent: '', skipped: true, archived: true });
+    aiStore.clearSkip(guid);
     if (reached) maybeReflect();
   }
   return true;
@@ -203,11 +209,17 @@ ipcMain.handle('chat:unarchive', async (_e, guid) => {
 ipcMain.handle('message:send', async (_e, payload) => {
   try {
     const draft = aiStore && aiStore.getDraft(payload.guid);
+    const skip = aiStore && aiStore.getSkip(payload.guid);
     const result = await sendMessage(payload);
     // Learn from the edit: AI draft vs what Ronak actually sent.
     if (draft) {
       const reached = aiStore.recordSample({ guid: payload.guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: payload.text, archived: false });
       aiStore.deleteDraft(payload.guid);
+      if (reached) maybeReflect();
+    } else if (skip) {
+      // The model skipped, but Ronak sent something here -> it should have drafted.
+      const reached = aiStore.recordSample({ guid: payload.guid, name: skip.name || '', incomingText: skip.incomingText || '', draft: '', sent: payload.text, skipped: true, archived: false });
+      aiStore.clearSkip(payload.guid);
       if (reached) maybeReflect();
     }
     return { ok: true, result };
@@ -237,11 +249,17 @@ async function aiTick() {
   for (const c of convos) {
     const prev = aiPrevState[c.guid];
     const draft = aiStore.getDraft(c.guid);
+    const skip = aiStore.getSkip(c.guid);
     if (draft && c.lastFromMe && (!prev || c.lastDate > prev.lastDate)) {
       // Ronak replied (from another device) -> learn from the edit, clear draft.
       const reached = aiStore.recordSample({ guid: c.guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: c.lastText || '', archived: false });
       aiStore.deleteDraft(c.guid);
       changed = true;
+      if (reached) maybeReflect();
+    } else if (skip && skip.forDate === c.lastIncomingDate && c.lastFromMe && (!prev || c.lastDate > prev.lastDate)) {
+      // The model skipped, but Ronak replied anyway -> it should have drafted.
+      const reached = aiStore.recordSample({ guid: c.guid, name: c.name, incomingText: skip.incomingText || '', draft: '', sent: c.lastText || '', skipped: true, archived: false });
+      aiStore.clearSkip(c.guid);
       if (reached) maybeReflect();
     } else if (draft && !c.lastFromMe && draft.forDate !== c.lastIncomingDate) {
       // A newer incoming message arrived: this draft replies to a superseded
@@ -250,6 +268,9 @@ async function aiTick() {
       // is generated below.
       aiStore.deleteDraft(c.guid);
       changed = true;
+    } else if (skip && !c.lastFromMe && skip.forDate !== c.lastIncomingDate) {
+      // New incoming message supersedes a prior skip -> reconsider (redraft).
+      aiStore.clearSkip(c.guid);
     }
     aiPrevState[c.guid] = { lastDate: c.lastDate, lastFromMe: c.lastFromMe };
   }
@@ -259,10 +280,14 @@ async function aiTick() {
   // Back off while the API is unusable (no credits / bad key) so we don't spam
   // failing calls; it resumes automatically after the cooldown.
   if (Date.now() < aiDraftCooldownUntil) return;
-  const needsDraft = convos.filter((c) =>
-    !c.archived && !c.lastFromMe && c.lastIncomingDate >= cutoff &&
-    !(aiStore.getDraft(c.guid) && aiStore.getDraft(c.guid).forDate === c.lastIncomingDate)
-  );
+  const needsDraft = convos.filter((c) => {
+    if (c.archived || c.lastFromMe || c.lastIncomingDate < cutoff) return false;
+    const d = aiStore.getDraft(c.guid);
+    if (d && d.forDate === c.lastIncomingDate) return false;        // already drafted
+    const s = aiStore.getSkip(c.guid);
+    if (s && s.forDate === c.lastIncomingDate) return false;        // already judged: skip
+    return true;
+  });
 
   let budget = 4; // cap per tick to spread cost / avoid rate limits
   for (const c of needsDraft) {
@@ -280,13 +305,22 @@ async function generateDraftFor(c) {
       messages,
       isGroup: c.isGroup,
     });
-    if (res.ok && res.text) {
+    if (res.ok && res.skip) {
+      // Model judged no reply is needed. Remember the decision (keyed to this
+      // incoming message) so we don't redraft it every tick; show no draft.
+      aiStore.setSkip(c.guid, c.lastIncomingDate, c.name, lastIncoming ? lastIncoming.text : '');
+      aiStore.deleteDraft(c.guid);
+      aiStatus.lastError = null;
+      aiStatus.lastErrorType = null;
+      if (win) win.webContents.send('ai-changed');
+    } else if (res.ok && res.text) {
       aiStore.setDraft(c.guid, {
         text: res.text,
         forDate: c.lastIncomingDate,
         incomingText: lastIncoming ? lastIncoming.text : '',
         name: c.name,
       });
+      aiStore.clearSkip(c.guid);
       aiStatus.lastError = null;
       aiStatus.lastErrorType = null;
       if (win) win.webContents.send('ai-changed');

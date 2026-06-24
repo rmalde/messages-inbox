@@ -86,29 +86,50 @@ function buildTranscript(messages, isGroup) {
     .join('\n');
 }
 
+const NO_REPLY = 'NO_REPLY';
+
 async function generateDraft({ systemPrompt, messages, isGroup }) {
   const transcript = buildTranscript(messages, isGroup);
-  const user = `Here's a text conversation${isGroup ? ' (a group chat)' : ''}. Draft my (Ronak's) next reply to the most recent message, in my exact voice. Output ONLY the message text.\n\n----\n${transcript}\n----`;
-  return callAnthropic({
+  const user = `Here's a text conversation${isGroup ? ' (a group chat)' : ''}. Draft my (Ronak's) next reply to the most recent message, in my exact voice. Output ONLY the message text.
+
+Sometimes the right move is NOT to reply. If a reply isn't warranted — the thread has naturally wound down, the last message is a closing or acknowledgement ("sounds good", "👍", "thanks!!"), it's a group chat where Ronak wouldn't chime in, it's purely informational, or it's the kind of message he'd just leave on read — then output exactly ${NO_REPLY} and nothing else. Don't force a reply where none is natural.
+
+----
+${transcript}
+----`;
+  const res = await callAnthropic({
     model: DRAFT_MODEL,
     system: systemPrompt,
     messages: [{ role: 'user', content: user }],
     max_tokens: 320,
     temperature: 0.7,
   });
+  if (res.ok) {
+    const stripped = (res.text || '').replace(/[\s."'`*]+$/g, '').trim();
+    if (!stripped || stripped.toUpperCase() === NO_REPLY) return { ok: true, skip: true };
+  }
+  return res;
 }
 
 // Reflection: given the current prompt and a batch of (draft -> what Ronak
 // actually sent) samples, propose an improved style prompt.
 async function reflect({ systemPrompt, samples }) {
   const batch = samples.map((s, i) => {
+    const head = `### Sample ${i + 1}${s.name ? ` (with ${s.name})` : ''}\nThey said: ${(s.incomingText || '').slice(0, 400)}`;
+    if (s.skipped) {
+      // The AI chose not to draft. Did Ronak agree (no reply / archived) or not?
+      const verdict = s.archived || !(s.sent || '').trim()
+        ? 'Ronak also did NOT reply (archived / left it) — skipping was the RIGHT call.'
+        : `Ronak DID reply with: ${(s.sent || '').slice(0, 600)} — a draft would have helped; skipping was WRONG here.`;
+      return `${head}\nAI decided: NO DRAFT (judged no reply needed)\nOutcome: ${verdict}`;
+    }
     const outcome = s.archived
       ? '[ARCHIVED WITHOUT SENDING — the draft was unwanted; he chose not to reply at all]'
       : (s.sent || '').trim() || '[sent empty]';
-    return `### Sample ${i + 1}${s.name ? ` (with ${s.name})` : ''}\nThey said: ${(s.incomingText || '').slice(0, 400)}\nAI draft: ${(s.draft || '').slice(0, 600)}\nRonak actually sent: ${outcome}`;
+    return `${head}\nAI draft: ${(s.draft || '').slice(0, 600)}\nRonak actually sent: ${outcome}`;
   }).join('\n\n');
 
-  const system = `You tune a system prompt that drafts text-message replies in Ronak's voice. You'll see the CURRENT prompt and ${samples.length} recent cases comparing the AI's draft to what Ronak actually sent (or that he archived it without replying). Identify the consistent patterns in how he edits — tone, length, formality, emoji, openings, what he cuts or adds — and rewrite the prompt to minimize future edits. Keep everything that's working; change only what the evidence supports. Do not overfit to one-offs.
+  const system = `You tune a system prompt that drafts text-message replies in Ronak's voice. You'll see the CURRENT prompt and ${samples.length} recent cases. Each case is either (a) a draft compared to what Ronak actually sent or archived, or (b) a case where the AI chose NOT to draft and whether that was right. The drafter is allowed to output NO_REPLY when a reply isn't warranted. From the evidence, refine BOTH: (1) Ronak's voice on the messages he does reply to — tone, length, formality, emoji, openings, what he cuts or adds; and (2) WHEN to skip drafting entirely — learn the kinds of messages he leaves unanswered (closings, acknowledgements, group noise, FYIs) so the drafter skips those, and make sure it does NOT skip messages he'd actually answer. Rewrite the prompt to minimize future edits AND mis-skips. Keep what's working; change only what the evidence supports. Do not overfit to one-offs.
 
 Respond with ONLY valid JSON, no markdown fence:
 {"reflection": "<2-4 sentences on what the edits reveal and what you changed>", "systemPrompt": "<the full improved system prompt>"}`;
