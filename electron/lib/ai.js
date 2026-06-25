@@ -96,26 +96,37 @@ function buildTranscript(messages, isGroup, name) {
 
 const NO_REPLY = 'NO_REPLY';
 
+// Fixed operating rules for the drafter, prepended to the (evolving) style
+// guide. Kept out of the learned prompt so reflection can never erode them.
+const DRAFTER_CONTEXT = `You draft text messages as Ronak, in his exact voice, inside a Messages app.
+
+Ronak texts in quick succession — several short messages rather than one long paragraph. So you draft his NEXT SINGLE message, not a whole reply. You are part of an ongoing chain: each time, you propose just the one next thing he'd send, and after he sends it you'll be asked again for the message after that.
+
+Read the LAST line of the transcript to decide what to do:
+- If it's from someone else → draft Ronak's reply to it.
+- If it's from "Me" (Ronak just texted) → you're continuing his burst. Only draft a follow-up if he's clearly mid-thought — e.g. his last text was a short opener ("yeah", "haha", "one sec", "ok so") or he hasn't finished his point yet. If his last message already completes the point, it's the other person's turn, so give no response.
+
+Giving NO response: output exactly ${NO_REPLY} (those characters, nothing else) whenever no message from Ronak is warranted right now — his turn is complete, the thread has wound down, the last message is a closing/acknowledgement ("sounds good", "👍", "thanks!!"), it's group chatter he wouldn't join, or it's purely informational. Never force a message where none is natural; ${NO_REPLY} is always a valid, good answer.
+
+The STYLE GUIDE below describes his voice — match it exactly.`;
+
 async function generateDraft({ systemPrompt, messages, isGroup, name }) {
   const transcript = buildTranscript(messages, isGroup, name);
   const real = looksLikeName(name) ? name.trim() : null;
   const ctx = isGroup
-    ? `Here's a group chat${real ? ` with ${real}` : ''}.`
-    : `Here's a 1:1 text conversation${real ? ` with ${real}` : ''}.`;
-  const user = `${ctx} Draft my (Ronak's) next single message in this conversation, in my exact voice. Output ONLY the message text (one message — Ronak texts in quick succession, so keep it to the next one thing he'd send, not a whole paragraph).
-
-Look at the last line of the transcript:
-- If it's from someone else, draft Ronak's reply.
-- If it's from Me (Ronak just texted), only draft a FOLLOW-UP if he's clearly mid-thought and about to send more — e.g. his last text was a short opener ("yeah", "haha", "one sec", "ok so") or he hasn't finished answering. If his last message already completes his point, output exactly ${NO_REPLY} (it's their turn now).
-
-Also output exactly ${NO_REPLY} and nothing else whenever no message is warranted — the thread has wound down, the last message is a closing/acknowledgement ("sounds good", "👍", "thanks!!"), it's group noise Ronak wouldn't join, or it's purely informational. Don't force a message where none is natural.
+    ? `This is a group chat${real ? ` with ${real}` : ''}.`
+    : `This is a 1:1 conversation${real ? ` with ${real}` : ''}.`;
+  const system = `${DRAFTER_CONTEXT}\n\n=== STYLE GUIDE ===\n${systemPrompt}`;
+  const user = `${ctx}
 
 ----
 ${transcript}
-----`;
+----
+
+Draft my (Ronak's) next single message per the rules. Output ONLY the message text, or exactly ${NO_REPLY} if no message is warranted.`;
   const res = await callAnthropic({
     model: DRAFT_MODEL,
-    system: systemPrompt,
+    system,
     messages: [{ role: 'user', content: user }],
     max_tokens: 320,
     temperature: 0.7,
@@ -150,7 +161,16 @@ async function reflect({ systemPrompt, samples }) {
     return `${head}\nAI draft: ${(s.draft || '').slice(0, 600)}\nRonak actually sent: ${outcome}`;
   }).join('\n\n');
 
-  const system = `You tune a system prompt that drafts text-message replies in Ronak's voice. You'll see the CURRENT prompt and ${samples.length} recent cases. Each case is either (a) a draft compared to what Ronak actually sent or archived, or (b) a case where the AI chose NOT to draft and whether that was right. The drafter is allowed to output NO_REPLY when a reply isn't warranted. From the evidence, refine BOTH: (1) Ronak's voice on the messages he does reply to — tone, length, formality, emoji, openings, what he cuts or adds; and (2) WHEN to skip drafting entirely — learn the kinds of messages he leaves unanswered (closings, acknowledgements, group noise, FYIs) so the drafter skips those, and make sure it does NOT skip messages he'd actually answer. Rewrite the prompt to minimize future edits AND mis-skips. Keep what's working; change only what the evidence supports. Do not overfit to one-offs.
+  const system = `You tune the STYLE GUIDE used to draft text messages in Ronak's voice. You'll see the CURRENT guide and ${samples.length} recent cases. Each case is either (a) a draft compared to what Ronak actually sent or archived, (b) a case where the AI chose NOT to draft (and whether that was right), or (c) a message Ronak wrote himself before any draft existed.
+
+Important context about how the drafter works (don't fight it): Ronak texts in QUICK SUCCESSION — several short messages, not one paragraph. The drafter produces ONE short next message at a time and can output NO_REPLY. So short messages, openers, and partial thoughts are NORMAL and CORRECT — never push the guide toward long, complete, paragraph-style replies.
+
+From the evidence, refine the guide on three axes:
+1. VOICE — tone, length, formality, emoji, openings/closings, what he cuts or adds.
+2. RELATIONSHIP NUANCE — learn how his style shifts by WHO he's talking to (each case shows "with <name>"; infer the relationship from the name and content). He very likely texts investors / work contacts more measured and considered, close friends more casual, playful and emoji-heavy, and colleagues or family differently again. Identify these patterns and encode them EXPLICITLY as relationship-conditioned guidance (e.g. "With investors/work contacts: …  With close friends: …  With family: …") so drafts adapt to the person rather than being one-size-fits-all.
+3. WHEN TO GIVE NO RESPONSE — learn the kinds of messages he leaves unanswered (closings, acknowledgements, group noise, FYIs, his own already-complete turns) so the drafter skips those, while making sure it does NOT skip messages he'd actually answer.
+
+Rewrite the guide to minimize future edits, mis-skips, and missed drafts. Keep what's working; change only what the evidence supports. Do not overfit to one-offs.
 
 Respond with ONLY valid JSON, no markdown fence:
 {"reflection": "<2-4 sentences on what the edits reveal and what you changed>", "systemPrompt": "<the full improved system prompt>"}`;
