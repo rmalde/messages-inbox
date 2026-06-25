@@ -19,7 +19,6 @@ app.setName('Messages Inbox');
 let store;
 let aiStore;
 let aiStatus = { hasKey: false, lastError: null, lastErrorType: null, reflecting: false };
-const aiPrevState = {}; // guid -> { lastDate, lastFromMe } for send detection
 let aiReflectCooldownUntil = 0;
 let aiDraftCooldownUntil = 0; // back off drafting after billing/auth failures
 let win;
@@ -188,14 +187,16 @@ ipcMain.handle('chat:archive', async (_e, guid) => {
   const draft = aiStore && aiStore.getDraft(guid);
   const skip = aiStore && aiStore.getSkip(guid);
   if (draft || skip) {
-    // Only learn from the archive if Ronak hasn't already replied from another
-    // app (in which case he never acted on our draft/skip — not real signal).
-    const awaiting = await db.isAwaitingReply(guid).catch(() => false);
-    if (awaiting && draft) {
+    // Only learn if the draft/skip is still CURRENT for the conversation tail.
+    // If Ronak replied elsewhere since, the tail moved on (forDate !== last) and
+    // he never acted on this draft — so it isn't real signal.
+    const last = await db.lastMessage(guid).catch(() => null);
+    const lastDate = last ? last.date : null;
+    if (draft && draft.forDate === lastDate) {
       // Saw the draft, archived instead of sending -> the draft was unwanted.
       const reached = aiStore.recordSample({ guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: '', archived: true });
       if (reached) maybeReflect();
-    } else if (awaiting && skip) {
+    } else if (skip && skip.forDate === lastDate) {
       // Archived a chat the model chose to skip -> the skip was the right call.
       const reached = aiStore.recordSample({ guid, name: skip.name || '', incomingText: skip.incomingText || '', draft: '', sent: '', skipped: true, archived: true });
       if (reached) maybeReflect();
@@ -216,15 +217,22 @@ ipcMain.handle('message:send', async (_e, payload) => {
     const draft = aiStore && aiStore.getDraft(payload.guid);
     const skip = aiStore && aiStore.getSkip(payload.guid);
     const result = await sendMessage(payload);
-    // Learn from the edit: AI draft vs what Ronak actually sent.
-    if (draft) {
-      const reached = aiStore.recordSample({ guid: payload.guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: payload.text, archived: false });
-      aiStore.deleteDraft(payload.guid);
-      if (reached) maybeReflect();
-    } else if (skip) {
-      // The model skipped, but Ronak sent something here -> it should have drafted.
-      const reached = aiStore.recordSample({ guid: payload.guid, name: skip.name || '', incomingText: skip.incomingText || '', draft: '', sent: payload.text, skipped: true, archived: false });
-      aiStore.clearSkip(payload.guid);
+    // Sending in our app is always genuine signal (Ronak saw whatever we had).
+    // Each message he sends becomes one learning sample.
+    if (aiStore) {
+      let reached = false;
+      if (draft) {
+        // Had a draft -> compare it to what he actually sent (an edit).
+        reached = aiStore.recordSample({ guid: payload.guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: payload.text, archived: false });
+        aiStore.deleteDraft(payload.guid);
+      } else if (skip) {
+        // We'd judged "no message" but he sent one -> should have drafted.
+        reached = aiStore.recordSample({ guid: payload.guid, name: skip.name || '', incomingText: skip.incomingText || '', draft: '', sent: payload.text, skipped: true, archived: false });
+        aiStore.clearSkip(payload.guid);
+      } else {
+        // Nothing was on offer (not drafted yet) -> a voice example / missed draft.
+        reached = aiStore.recordSample({ guid: payload.guid, name: '', incomingText: '', draft: '', sent: payload.text, noGen: true, archived: false });
+      }
       if (reached) maybeReflect();
     }
     return { ok: true, result };
@@ -235,9 +243,12 @@ ipcMain.handle('message:send', async (_e, payload) => {
 
 // ---- AI: drafting + learning loop ----------------------------------------
 
-// Rolling backfill window: draft for chats whose last incoming message is this
-// recent and still awaiting a reply. New messages fall inside it automatically.
+// Rolling window: draft for chats active within this long. New messages fall
+// inside it automatically.
 const DRAFT_WINDOW_MS = 36 * 60 * 60 * 1000;
+// After one of Ronak's OWN messages, only keep drafting follow-ups for this
+// long — the rapid-succession window. Past it he's done; it's their turn.
+const CONT_WINDOW_MS = 15 * 60 * 1000;
 
 async function aiTick() {
   if (!aiStore || aiStatus.reflecting) return;
@@ -247,50 +258,37 @@ async function aiTick() {
   } catch { return; }
 
   const cutoff = Date.now() - DRAFT_WINDOW_MS;
+  const now = Date.now();
 
-  // 1) Draft/skip housekeeping. We do NOT learn from replies detected here:
-  //    when a chat shows a new outgoing message it was sent from another app
-  //    (phone / Messages) where Ronak never saw our draft, so it isn't a real
-  //    edit and would pollute the learning signal. We only clear the now-stale
-  //    draft/skip. Genuine learning happens only for actions taken IN our app
-  //    (the message:send and chat:archive handlers).
+  // 1) Drop stale drafts/skips. A draft/skip is keyed to the conversation tail
+  //    (`forDate` = the last message at generation time); once the tail changes
+  //    — a new incoming message, or one Ronak sent (here or from another app) —
+  //    it no longer applies and is cleared so we never surface an off-by-one
+  //    draft. We do NOT learn here: learning only happens for actions taken IN
+  //    our app (the message:send and chat:archive handlers), never from messages
+  //    that appeared from another device.
   let changed = false;
   for (const c of convos) {
-    const prev = aiPrevState[c.guid];
     const draft = aiStore.getDraft(c.guid);
     const skip = aiStore.getSkip(c.guid);
-    if (draft && c.lastFromMe && (!prev || c.lastDate > prev.lastDate)) {
-      // Replied from another app without using our draft -> clear it silently.
-      aiStore.deleteDraft(c.guid);
-      changed = true;
-    } else if (skip && c.lastFromMe && (!prev || c.lastDate > prev.lastDate)) {
-      // Replied from another app after a skip -> he never saw the skip; not signal.
-      aiStore.clearSkip(c.guid);
-    } else if (draft && !c.lastFromMe && draft.forDate !== c.lastIncomingDate) {
-      // A newer incoming message arrived: this draft replies to a superseded
-      // message, so it's stale. Drop it immediately (rather than waiting for a
-      // regeneration slot) so we never surface an off-by-one draft. A fresh one
-      // is generated below.
-      aiStore.deleteDraft(c.guid);
-      changed = true;
-    } else if (skip && !c.lastFromMe && skip.forDate !== c.lastIncomingDate) {
-      // New incoming message supersedes a prior skip -> reconsider (redraft).
-      aiStore.clearSkip(c.guid);
-    }
-    aiPrevState[c.guid] = { lastDate: c.lastDate, lastFromMe: c.lastFromMe };
+    if (draft && draft.forDate !== c.lastDate) { aiStore.deleteDraft(c.guid); changed = true; }
+    if (skip && skip.forDate !== c.lastDate) { aiStore.clearSkip(c.guid); }
   }
   if (changed && win) win.webContents.send('ai-changed');
 
-  // 2) Draft generation for today's awaiting-reply chats (a few per tick).
-  // Back off while the API is unusable (no credits / bad key) so we don't spam
-  // failing calls; it resumes automatically after the cooldown.
+  // 2) Draft the next message Ronak would send, given the current tail (a few
+  //    per tick). This covers replies (last message is theirs) AND continuations
+  //    (Ronak just texted and may be mid-burst). Back off while the API is down.
   if (Date.now() < aiDraftCooldownUntil) return;
   const needsDraft = convos.filter((c) => {
-    if (c.archived || c.lastFromMe || c.lastIncomingDate < cutoff) return false;
+    if (c.archived || c.lastDate < cutoff) return false;
+    // Only draft a continuation shortly after Ronak's own message (rapid-fire
+    // window); otherwise he's done and it's their turn — no continuation.
+    if (c.lastFromMe && (now - c.lastDate) > CONT_WINDOW_MS) return false;
     const d = aiStore.getDraft(c.guid);
-    if (d && d.forDate === c.lastIncomingDate) return false;        // already drafted
+    if (d && d.forDate === c.lastDate) return false;   // already drafted this tail
     const s = aiStore.getSkip(c.guid);
-    if (s && s.forDate === c.lastIncomingDate) return false;        // already judged: skip
+    if (s && s.forDate === c.lastDate) return false;   // already judged: no message
     return true;
   });
 
@@ -312,9 +310,9 @@ async function generateDraftFor(c) {
       name: c.name,
     });
     if (res.ok && res.skip) {
-      // Model judged no reply is needed. Remember the decision (keyed to this
-      // incoming message) so we don't redraft it every tick; show no draft.
-      aiStore.setSkip(c.guid, c.lastIncomingDate, c.name, lastIncoming ? lastIncoming.text : '');
+      // Model judged no message is warranted. Remember the decision (keyed to
+      // the current tail) so we don't redraft it every tick; show no draft.
+      aiStore.setSkip(c.guid, c.lastDate, c.name, lastIncoming ? lastIncoming.text : '');
       aiStore.deleteDraft(c.guid);
       aiStatus.lastError = null;
       aiStatus.lastErrorType = null;
@@ -322,7 +320,7 @@ async function generateDraftFor(c) {
     } else if (res.ok && res.text) {
       aiStore.setDraft(c.guid, {
         text: res.text,
-        forDate: c.lastIncomingDate,
+        forDate: c.lastDate,
         incomingText: lastIncoming ? lastIncoming.text : '',
         name: c.name,
       });

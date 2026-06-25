@@ -102,9 +102,13 @@ async function generateDraft({ systemPrompt, messages, isGroup, name }) {
   const ctx = isGroup
     ? `Here's a group chat${real ? ` with ${real}` : ''}.`
     : `Here's a 1:1 text conversation${real ? ` with ${real}` : ''}.`;
-  const user = `${ctx} Draft my (Ronak's) next reply to the most recent message, in my exact voice. Output ONLY the message text.
+  const user = `${ctx} Draft my (Ronak's) next single message in this conversation, in my exact voice. Output ONLY the message text (one message — Ronak texts in quick succession, so keep it to the next one thing he'd send, not a whole paragraph).
 
-Sometimes the right move is NOT to reply. If a reply isn't warranted — the thread has naturally wound down, the last message is a closing or acknowledgement ("sounds good", "👍", "thanks!!"), it's a group chat where Ronak wouldn't chime in, it's purely informational, or it's the kind of message he'd just leave on read — then output exactly ${NO_REPLY} and nothing else. Don't force a reply where none is natural.
+Look at the last line of the transcript:
+- If it's from someone else, draft Ronak's reply.
+- If it's from Me (Ronak just texted), only draft a FOLLOW-UP if he's clearly mid-thought and about to send more — e.g. his last text was a short opener ("yeah", "haha", "one sec", "ok so") or he hasn't finished answering. If his last message already completes his point, output exactly ${NO_REPLY} (it's their turn now).
+
+Also output exactly ${NO_REPLY} and nothing else whenever no message is warranted — the thread has wound down, the last message is a closing/acknowledgement ("sounds good", "👍", "thanks!!"), it's group noise Ronak wouldn't join, or it's purely informational. Don't force a message where none is natural.
 
 ----
 ${transcript}
@@ -128,12 +132,17 @@ ${transcript}
 async function reflect({ systemPrompt, samples }) {
   const batch = samples.map((s, i) => {
     const head = `### Sample ${i + 1}${s.name ? ` (with ${s.name})` : ''}\nThey said: ${(s.incomingText || '').slice(0, 400)}`;
+    if (s.noGen) {
+      // No draft had been produced; Ronak wrote this himself. A voice example
+      // and a signal the drafter should have something ready in this situation.
+      return `${head}\nAI had NOT drafted anything yet.\nRonak wrote: ${(s.sent || '').slice(0, 600)}`;
+    }
     if (s.skipped) {
       // The AI chose not to draft. Did Ronak agree (no reply / archived) or not?
       const verdict = s.archived || !(s.sent || '').trim()
-        ? 'Ronak also did NOT reply (archived / left it) — skipping was the RIGHT call.'
-        : `Ronak DID reply with: ${(s.sent || '').slice(0, 600)} — a draft would have helped; skipping was WRONG here.`;
-      return `${head}\nAI decided: NO DRAFT (judged no reply needed)\nOutcome: ${verdict}`;
+        ? 'Ronak also did NOT send anything (archived / left it) — skipping was the RIGHT call.'
+        : `Ronak DID send: ${(s.sent || '').slice(0, 600)} — a draft would have helped; skipping was WRONG here.`;
+      return `${head}\nAI decided: NO DRAFT (judged no message needed)\nOutcome: ${verdict}`;
     }
     const outcome = s.archived
       ? '[ARCHIVED WITHOUT SENDING — the draft was unwanted; he chose not to reply at all]'

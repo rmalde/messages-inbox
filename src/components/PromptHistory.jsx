@@ -10,6 +10,7 @@ function statusLine(s) {
 }
 
 function editKind(s) {
+  if (s.noGen) return { tag: 'Wrote it himself (no draft yet)', cls: 'k-arch' };
   if (s.skipped) {
     return (s.sent || '').trim()
       ? { tag: "Skipped — should've drafted", cls: 'k-edit' }
@@ -96,7 +97,12 @@ export default function PromptHistory({ onClose }) {
                     <span className="pv-date">{new Date(s.ts).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                   </div>
                   {s.incomingText ? <div className="edit-row"><span className="edit-lbl">They</span><span>{s.incomingText}</span></div> : null}
-                  {s.skipped ? (
+                  {s.noGen ? (
+                    <>
+                      <div className="edit-row"><span className="edit-lbl">AI</span><span className="edit-draft"><em>nothing drafted yet</em></span></div>
+                      <div className="edit-row"><span className="edit-lbl">Sent</span><span className="edit-sent">{s.sent}</span></div>
+                    </>
+                  ) : s.skipped ? (
                     <>
                       <div className="edit-row"><span className="edit-lbl">AI</span><span className="edit-draft"><em>chose not to draft</em></span></div>
                       {(s.sent || '').trim()

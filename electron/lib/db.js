@@ -275,23 +275,25 @@ async function getMessages(chatId, limit = 1000) {
   return messages;
 }
 
-// Is the most recent real (non-tapback) message in this chat from someone else?
-// Used to tell whether a chat is still awaiting Ronak's reply right now.
-async function isAwaitingReply(guid) {
+// The most recent real (non-tapback) message in this chat: its timestamp (ms)
+// and whether it's from Ronak. Matches getConversations' notion of "last
+// message" so a draft's forDate can be compared for currency.
+async function lastMessage(guid) {
   const g = String(guid).replace(/'/g, "''");
   try {
     const rows = await query(`
-      SELECT m.is_from_me AS fromme
+      SELECT m.date AS date, m.is_from_me AS fromme
       FROM chat c
       JOIN chat_message_join cmj ON cmj.chat_id = c.ROWID
       JOIN message m ON m.ROWID = cmj.message_id
       WHERE c.guid = '${g}' AND m.associated_message_type = 0 AND m.item_type = 0
       ORDER BY m.date DESC LIMIT 1;
     `);
-    return rows.length ? !rows[0].fromme : true;
+    if (!rows.length) return null;
+    return { date: appleToMs(rows[0].date), fromMe: !!rows[0].fromme };
   } catch {
-    return true; // on error, don't block legitimate learning
+    return null;
   }
 }
 
-module.exports = { getConversations, getMessages, isAwaitingReply, appleToMs, normalizePhone, ATTACH_DIR };
+module.exports = { getConversations, getMessages, lastMessage, appleToMs, normalizePhone, ATTACH_DIR };
