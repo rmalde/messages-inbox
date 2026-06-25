@@ -21,6 +21,8 @@ let aiStore;
 let aiStatus = { hasKey: false, lastError: null, lastErrorType: null, reflecting: false };
 let aiReflectCooldownUntil = 0;
 let aiDraftCooldownUntil = 0; // back off drafting after billing/auth failures
+let aiLastGenAt = 0;          // throttle expensive generation to GEN_EVERY_MS
+let aiGenBusy = false;        // guard against overlapping generation passes
 let win;
 
 function createWindow() {
@@ -118,8 +120,8 @@ app.whenReady().then(() => {
   // AI drafting loop — generate drafts for today's awaiting-reply chats and
   // capture edits for learning. Runs only if an API key is available.
   if (aiStatus.hasKey) {
-    setTimeout(aiTick, 3000);
-    setInterval(aiTick, 9000);
+    setTimeout(aiTick, 2000);
+    setInterval(aiTick, SWEEP_MS);
   }
 
   nativeTheme.on('updated', () => {
@@ -249,7 +251,13 @@ const DRAFT_WINDOW_MS = 36 * 60 * 60 * 1000;
 // After one of Ronak's OWN messages, only keep drafting follow-ups for this
 // long — the rapid-succession window. Past it he's done; it's their turn.
 const CONT_WINDOW_MS = 15 * 60 * 1000;
+const SWEEP_MS = 3000;          // how often we clear stale drafts (cheap, no API)
+const GEN_EVERY_MS = 9000;      // how often we run the (throttled) generation pass
 
+// Runs every SWEEP_MS. Always does the cheap staleness sweep so a brand-new
+// message (from them, or from Ronak on another device) clears the now-outdated
+// draft promptly. Generation is throttled to GEN_EVERY_MS and guarded so passes
+// don't overlap.
 async function aiTick() {
   if (!aiStore || aiStatus.reflecting) return;
   let convos;
@@ -257,7 +265,6 @@ async function aiTick() {
     convos = store.decorate(await db.getConversations());
   } catch { return; }
 
-  const cutoff = Date.now() - DRAFT_WINDOW_MS;
   const now = Date.now();
 
   // 1) Drop stale drafts/skips. A draft/skip is keyed to the conversation tail
@@ -276,10 +283,11 @@ async function aiTick() {
   }
   if (changed && win) win.webContents.send('ai-changed');
 
-  // 2) Draft the next message Ronak would send, given the current tail (a few
-  //    per tick). This covers replies (last message is theirs) AND continuations
-  //    (Ronak just texted and may be mid-burst). Back off while the API is down.
-  if (Date.now() < aiDraftCooldownUntil) return;
+  // 2) Draft the next message Ronak would send, given the current tail. Covers
+  //    replies (last message is theirs) AND continuations (Ronak just texted and
+  //    may be mid-burst). Throttled + guarded; backs off while the API is down.
+  if (aiGenBusy || now - aiLastGenAt < GEN_EVERY_MS || now < aiDraftCooldownUntil) return;
+  const cutoff = now - DRAFT_WINDOW_MS;
   const needsDraft = convos.filter((c) => {
     if (c.archived || c.lastDate < cutoff) return false;
     // Only draft a continuation shortly after Ronak's own message (rapid-fire
@@ -291,11 +299,18 @@ async function aiTick() {
     if (s && s.forDate === c.lastDate) return false;   // already judged: no message
     return true;
   });
+  if (!needsDraft.length) return;
 
-  let budget = 4; // cap per tick to spread cost / avoid rate limits
-  for (const c of needsDraft) {
-    if (budget-- <= 0) break;
-    await generateDraftFor(c);
+  aiGenBusy = true;
+  aiLastGenAt = now;
+  try {
+    let budget = 4; // cap per pass to spread cost / avoid rate limits
+    for (const c of needsDraft) {
+      if (budget-- <= 0) break;
+      await generateDraftFor(c);
+    }
+  } finally {
+    aiGenBusy = false;
   }
 }
 
