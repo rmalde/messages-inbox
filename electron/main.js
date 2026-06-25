@@ -185,18 +185,23 @@ ipcMain.handle('chat:open', async (_e, guid) => {
 
 ipcMain.handle('chat:archive', async (_e, guid) => {
   store.archive(guid, Date.now());
-  // Archiving with a live draft = the draft was unwanted (target -> empty).
   const draft = aiStore && aiStore.getDraft(guid);
   const skip = aiStore && aiStore.getSkip(guid);
-  if (draft) {
-    const reached = aiStore.recordSample({ guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: '', archived: true });
+  if (draft || skip) {
+    // Only learn from the archive if Ronak hasn't already replied from another
+    // app (in which case he never acted on our draft/skip — not real signal).
+    const awaiting = await db.isAwaitingReply(guid).catch(() => false);
+    if (awaiting && draft) {
+      // Saw the draft, archived instead of sending -> the draft was unwanted.
+      const reached = aiStore.recordSample({ guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: '', archived: true });
+      if (reached) maybeReflect();
+    } else if (awaiting && skip) {
+      // Archived a chat the model chose to skip -> the skip was the right call.
+      const reached = aiStore.recordSample({ guid, name: skip.name || '', incomingText: skip.incomingText || '', draft: '', sent: '', skipped: true, archived: true });
+      if (reached) maybeReflect();
+    }
     aiStore.deleteDraft(guid);
-    if (reached) maybeReflect();
-  } else if (skip) {
-    // Archived a chat the model already chose to skip -> the skip was correct.
-    const reached = aiStore.recordSample({ guid, name: skip.name || '', incomingText: skip.incomingText || '', draft: '', sent: '', skipped: true, archived: true });
     aiStore.clearSkip(guid);
-    if (reached) maybeReflect();
   }
   return true;
 });
@@ -243,24 +248,24 @@ async function aiTick() {
 
   const cutoff = Date.now() - DRAFT_WINDOW_MS;
 
-  // 1) Learning capture: a chat that had a draft now shows a newer outgoing
-  //    message (sent from another device / Messages) -> record the edit.
+  // 1) Draft/skip housekeeping. We do NOT learn from replies detected here:
+  //    when a chat shows a new outgoing message it was sent from another app
+  //    (phone / Messages) where Ronak never saw our draft, so it isn't a real
+  //    edit and would pollute the learning signal. We only clear the now-stale
+  //    draft/skip. Genuine learning happens only for actions taken IN our app
+  //    (the message:send and chat:archive handlers).
   let changed = false;
   for (const c of convos) {
     const prev = aiPrevState[c.guid];
     const draft = aiStore.getDraft(c.guid);
     const skip = aiStore.getSkip(c.guid);
     if (draft && c.lastFromMe && (!prev || c.lastDate > prev.lastDate)) {
-      // Ronak replied (from another device) -> learn from the edit, clear draft.
-      const reached = aiStore.recordSample({ guid: c.guid, name: draft.name, incomingText: draft.incomingText, draft: draft.text, sent: c.lastText || '', archived: false });
+      // Replied from another app without using our draft -> clear it silently.
       aiStore.deleteDraft(c.guid);
       changed = true;
-      if (reached) maybeReflect();
-    } else if (skip && skip.forDate === c.lastIncomingDate && c.lastFromMe && (!prev || c.lastDate > prev.lastDate)) {
-      // The model skipped, but Ronak replied anyway -> it should have drafted.
-      const reached = aiStore.recordSample({ guid: c.guid, name: c.name, incomingText: skip.incomingText || '', draft: '', sent: c.lastText || '', skipped: true, archived: false });
+    } else if (skip && c.lastFromMe && (!prev || c.lastDate > prev.lastDate)) {
+      // Replied from another app after a skip -> he never saw the skip; not signal.
       aiStore.clearSkip(c.guid);
-      if (reached) maybeReflect();
     } else if (draft && !c.lastFromMe && draft.forDate !== c.lastIncomingDate) {
       // A newer incoming message arrived: this draft replies to a superseded
       // message, so it's stale. Drop it immediately (rather than waiting for a
