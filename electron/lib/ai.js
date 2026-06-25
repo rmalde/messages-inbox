@@ -96,37 +96,24 @@ function buildTranscript(messages, isGroup, name) {
 
 const NO_REPLY = 'NO_REPLY';
 
-// Fixed operating rules for the drafter, prepended to the (evolving) style
-// guide. Kept out of the learned prompt so reflection can never erode them.
-const DRAFTER_CONTEXT = `You draft text messages as Ronak, in his exact voice, inside a Messages app.
-
-Ronak texts in quick succession — several short messages rather than one long paragraph. So you draft his NEXT SINGLE message, not a whole reply. You are part of an ongoing chain: each time, you propose just the one next thing he'd send, and after he sends it you'll be asked again for the message after that.
-
-Read the LAST line of the transcript to decide what to do:
-- If it's from someone else → draft Ronak's reply to it.
-- If it's from "Me" (Ronak just texted) → you're continuing his burst. Only draft a follow-up if he's clearly mid-thought — e.g. his last text was a short opener ("yeah", "haha", "one sec", "ok so") or he hasn't finished his point yet. If his last message already completes the point, it's the other person's turn, so give no response.
-
-Giving NO response: output exactly ${NO_REPLY} (those characters, nothing else) whenever no message from Ronak is warranted right now — his turn is complete, the thread has wound down, the last message is a closing/acknowledgement ("sounds good", "👍", "thanks!!"), it's group chatter he wouldn't join, or it's purely informational. Never force a message where none is natural; ${NO_REPLY} is always a valid, good answer.
-
-The STYLE GUIDE below describes his voice — match it exactly.`;
-
 async function generateDraft({ systemPrompt, messages, isGroup, name }) {
   const transcript = buildTranscript(messages, isGroup, name);
   const real = looksLikeName(name) ? name.trim() : null;
   const ctx = isGroup
     ? `This is a group chat${real ? ` with ${real}` : ''}.`
     : `This is a 1:1 conversation${real ? ` with ${real}` : ''}.`;
-  const system = `${DRAFTER_CONTEXT}\n\n=== STYLE GUIDE ===\n${systemPrompt}`;
+  // No fixed preamble — all guidance (voice, chain behaviour, when to skip)
+  // lives in the system prompt, which is seeded in v0 and free to evolve.
   const user = `${ctx}
 
 ----
 ${transcript}
 ----
 
-Draft my (Ronak's) next single message per the rules. Output ONLY the message text, or exactly ${NO_REPLY} if no message is warranted.`;
+Draft my (Ronak's) next message in my voice. Output ONLY the message text, or exactly ${NO_REPLY} if no message is warranted right now.`;
   const res = await callAnthropic({
     model: DRAFT_MODEL,
-    system,
+    system: systemPrompt,
     messages: [{ role: 'user', content: user }],
     max_tokens: 320,
     temperature: 0.7,
