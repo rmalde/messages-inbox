@@ -304,6 +304,7 @@ async function generateDraftFor(c) {
       systemPrompt: aiStore.currentPrompt(),
       messages,
       isGroup: c.isGroup,
+      name: c.name,
     });
     if (res.ok && res.skip) {
       // Model judged no reply is needed. Remember the decision (keyed to this

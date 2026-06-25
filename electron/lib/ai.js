@@ -73,13 +73,21 @@ async function callAnthropic({ model, system, messages, max_tokens = 400, temper
   }
 }
 
-// Build a compact transcript for the drafting prompt.
-function buildTranscript(messages, isGroup) {
+// True for a resolved contact name, false for a bare phone/email handle.
+function looksLikeName(s) {
+  return !!s && /[A-Za-z]/.test(s) && !/^\+?\d[\d\s().-]*$/.test(s) && !s.includes('@');
+}
+
+// Build a compact transcript for the drafting prompt. In 1:1s the counterpart
+// is labelled by name (not "Them"); in groups each line already carries the
+// sender's resolved name.
+function buildTranscript(messages, isGroup, name) {
+  const other = !isGroup && looksLikeName(name) ? name.trim() : null;
   return messages
     .filter((m) => (m.text && m.text.trim()) || m.attachments.length)
     .slice(-24) // at least the last ~20 real messages for context
     .map((m) => {
-      const who = m.fromMe ? 'Me' : (isGroup ? (m.sender || 'Them') : 'Them');
+      const who = m.fromMe ? 'Me' : (isGroup ? (m.sender || 'Them') : (other || 'Them'));
       const body = m.text && m.text.trim() ? m.text.trim() : '[attachment]';
       return `${who}: ${body}`;
     })
@@ -88,9 +96,13 @@ function buildTranscript(messages, isGroup) {
 
 const NO_REPLY = 'NO_REPLY';
 
-async function generateDraft({ systemPrompt, messages, isGroup }) {
-  const transcript = buildTranscript(messages, isGroup);
-  const user = `Here's a text conversation${isGroup ? ' (a group chat)' : ''}. Draft my (Ronak's) next reply to the most recent message, in my exact voice. Output ONLY the message text.
+async function generateDraft({ systemPrompt, messages, isGroup, name }) {
+  const transcript = buildTranscript(messages, isGroup, name);
+  const real = looksLikeName(name) ? name.trim() : null;
+  const ctx = isGroup
+    ? `Here's a group chat${real ? ` with ${real}` : ''}.`
+    : `Here's a 1:1 text conversation${real ? ` with ${real}` : ''}.`;
+  const user = `${ctx} Draft my (Ronak's) next reply to the most recent message, in my exact voice. Output ONLY the message text.
 
 Sometimes the right move is NOT to reply. If a reply isn't warranted — the thread has naturally wound down, the last message is a closing or acknowledgement ("sounds good", "👍", "thanks!!"), it's a group chat where Ronak wouldn't chime in, it's purely informational, or it's the kind of message he'd just leave on read — then output exactly ${NO_REPLY} and nothing else. Don't force a reply where none is natural.
 
