@@ -205,6 +205,11 @@ async function getMessages(chatId, limit = 1000) {
       WHERE maj.message_id IN (${ids.join(',')});
     `);
     for (const a of att) {
+      // Skip iMessage rich-link / app-balloon payloads (e.g. a UUID named
+      // "*.pluginPayloadAttachment"). They aren't real files — the link itself
+      // lives in the message text — so showing them surfaces a junk hash.
+      const fn = a.filename || a.tname || '';
+      if (/\.pluginPayloadAttachment$/i.test(fn)) continue;
       (attachByMsg[a.mid] = attachByMsg[a.mid] || []).push({
         id: a.aid,
         path: a.filename ? a.filename.replace(/^~/, os.homedir()) : null,
