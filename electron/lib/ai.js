@@ -102,15 +102,29 @@ async function generateDraft({ systemPrompt, messages, isGroup, name }) {
   const ctx = isGroup
     ? `This is a group chat${real ? ` with ${real}` : ''}.`
     : `This is a 1:1 conversation${real ? ` with ${real}` : ''}.`;
+  // Who sent the most recent message (matches the last transcript line) — used
+  // to keep the drafter from answering Ronak's own messages as if it were the
+  // other person.
+  const considered = messages.filter((m) => (m.text && m.text.trim()) || m.attachments.length);
+  const last = considered[considered.length - 1];
+  const lastFromMe = !!(last && last.fromMe);
+  const lastWho = lastFromMe ? 'me (Ronak — labelled "Me")' : (isGroup && last && last.sender ? last.sender : (real || 'the other person'));
   // No fixed preamble — all guidance (voice, chain behaviour, when to skip)
   // lives in the system prompt, which is seeded in v0 and free to evolve.
+  const turnRule = lastFromMe
+    ? `The last message above is already mine, so decide between two options:
+- CONTINUE as me if my last message is incomplete or an opener clearly leading into more — write the very next thing I'd text (e.g. after "ok so we were thinking" → the rest of the thought; after "yeah one sec" → the thing I follow up with).
+- Otherwise output exactly ${NO_REPLY}: if my last message is a complete thought, or a question I asked THEM (e.g. "neil mehta next?", "what time works?"), it's their turn now — never answer my own message as if I were the other person.`
+    : `The last message above is from ${lastWho} — draft my reply to it.`;
   const user = `${ctx}
 
 ----
 ${transcript}
 ----
 
-Draft my (Ronak's) next message in my voice. Output ONLY the message text, or exactly ${NO_REPLY} if no message is warranted right now.`;
+You write ONLY my (Ronak's, labelled "Me:") own messages — never the other person's words. ${turnRule}
+
+Output ONLY my next message text, or exactly ${NO_REPLY} if no message from me is warranted right now.`;
   const res = await callAnthropic({
     model: DRAFT_MODEL,
     system: systemPrompt,
