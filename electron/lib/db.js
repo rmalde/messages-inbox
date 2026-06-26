@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const { decodeAttributedBody } = require('./attributedBody');
 const { getContactMap } = require('./contacts');
+const { decodeLinkPreview } = require('./richlink');
 const { SQLITE } = require('./bin');
 
 const CHAT_DB = path.join(os.homedir(), 'Library', 'Messages', 'chat.db');
@@ -180,6 +181,9 @@ async function getMessages(chatId, limit = 1000) {
            m.thread_originator_guid AS reply_guid,
            m.cache_has_attachments AS has_attach,
            m.item_type AS item_type,
+           m.balloon_bundle_id AS balloon,
+           CASE WHEN m.balloon_bundle_id = 'com.apple.messages.URLBalloonProvider'
+                THEN hex(m.payload_data) END AS payload_hex,
            h.id AS handle
     FROM chat_message_join cmj
     JOIN message m ON m.ROWID = cmj.message_id
@@ -245,6 +249,11 @@ async function getMessages(chatId, limit = 1000) {
       attachments: attachByMsg[r.id] || [],
       reactions: [],
     };
+    // Rich URL preview (decoded locally from the message's balloon payload).
+    if (r.payload_hex) {
+      const lp = decodeLinkPreview(Buffer.from(r.payload_hex, 'hex'));
+      if (lp) msg.linkPreview = lp;
+    }
     byGuid[r.guid] = msg;
     messages.push(msg);
   }

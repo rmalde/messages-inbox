@@ -20,7 +20,12 @@ function linkify(text) {
 export default function Bubble({ msg, groupPos, isGroup, animate }) {
   const mine = msg.fromMe;
   const sms = msg.service && msg.service !== 'iMessage';
-  const emojiOnly = msg.text && EMOJI_ONLY.test(msg.text.trim()) && msg.attachments.length === 0;
+  const lp = msg.linkPreview;
+  // When there's a card and the text is just a bare URL, hide the text (the
+  // card represents it). Keep any text that has more than just the link.
+  const textIsBareUrl = lp && msg.text && /^https?:\/\/\S+$/i.test(msg.text.trim());
+  const showText = msg.text && !textIsBareUrl;
+  const emojiOnly = msg.text && !lp && EMOJI_ONLY.test(msg.text.trim()) && msg.attachments.length === 0;
   const tail = groupPos === 'single' || groupPos === 'last';
   const runStart = groupPos === 'single' || groupPos === 'first';
 
@@ -52,7 +57,18 @@ export default function Bubble({ msg, groupPos, isGroup, animate }) {
           {msg.attachments.map((a) => (
             <Attachment key={a.id} att={a} />
           ))}
-          {msg.text && <span>{linkify(msg.text)}</span>}
+          {showText && <span>{linkify(msg.text)}</span>}
+          {lp && (
+            <div
+              className="link-card"
+              title={lp.url || ''}
+              onClick={() => lp.url && window.api.openExternal(lp.url)}
+            >
+              {lp.title && <div className="lc-title">{lp.title}</div>}
+              {lp.summary && <div className="lc-summary">{lp.summary}</div>}
+              {(lp.site || lp.domain) && <div className="lc-site">{lp.site || lp.domain}</div>}
+            </div>
+          )}
 
           {msg.reactions.length > 0 && (
             <div className="reactions">
