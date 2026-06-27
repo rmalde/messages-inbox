@@ -98,8 +98,10 @@ class AiStore {
   totalSamples() { return this.learning.totalSamples; }
   // Rolling history of recent edits (survives reflection resets), newest first.
   recentSamples(n = 20) { return this.learning.recent.slice(-n).reverse(); }
-  clearPending() {
-    this.learning.pending = [];
+  // Clear the first `n` pending samples (the ones a reflection consumed), or
+  // all of them when no count is given.
+  clearPending(n) {
+    this.learning.pending = n ? this.learning.pending.slice(n) : [];
     writeJson(this.learningFile, this.learning);
   }
 }

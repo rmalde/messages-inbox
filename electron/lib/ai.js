@@ -162,32 +162,34 @@ async function reflect({ systemPrompt, samples }) {
     return `${head}\nAI draft: ${(s.draft || '').slice(0, 600)}\nRonak actually sent: ${outcome}`;
   }).join('\n\n');
 
-  const system = `You tune the STYLE GUIDE used to draft text messages in Ronak's voice. You'll see the CURRENT guide and ${samples.length} recent cases. Each case is either (a) a draft compared to what Ronak actually sent or archived, (b) a case where the AI chose NOT to draft (and whether that was right), or (c) a message Ronak wrote himself before any draft existed.
+  const system = `You maintain the STYLE GUIDE used to draft Ronak's text messages. You'll see the CURRENT guide and ${samples.length} recent cases. Each case is either (a) a draft vs what Ronak actually sent or archived, (b) a case where the AI chose NOT to draft (and whether that was right), or (c) a message Ronak wrote himself before any draft existed.
 
-Important context about how the drafter works (don't fight it): Ronak texts in QUICK SUCCESSION — several short messages, not one paragraph. The drafter produces ONE short next message at a time and can output NO_REPLY. So short messages, openers, and partial thoughts are NORMAL and CORRECT — never push the guide toward long, complete, paragraph-style replies.
+How the drafter works (don't fight it): Ronak texts in QUICK SUCCESSION — several short messages, not one paragraph. The drafter writes ONE short next message at a time and can output NO_REPLY. Short messages, openers, and partial thoughts are NORMAL and CORRECT — never push the guide toward long paragraph-style replies.
 
-From the evidence, refine the guide on three axes:
-1. VOICE — tone, length, formality, emoji, openings/closings, what he cuts or adds.
-2. RELATIONSHIP NUANCE — learn how his style shifts by WHO he's talking to (each case shows "with <name>"; infer the relationship from the name and content). He very likely texts investors / work contacts more measured and considered, close friends more casual, playful and emoji-heavy, and colleagues or family differently again. Identify these patterns and encode them EXPLICITLY as relationship-conditioned guidance (e.g. "With investors/work contacts: …  With close friends: …  With family: …") so drafts adapt to the person rather than being one-size-fits-all.
-3. WHEN TO GIVE NO RESPONSE — learn the kinds of messages he leaves unanswered (closings, acknowledgements, group noise, FYIs, his own already-complete turns) so the drafter skips those, while making sure it does NOT skip messages he'd actually answer.
+ORGANIZE THE GUIDE AROUND WHO HE'S TALKING TO. Maintain an explicit, stable taxonomy of sender categories and figure out which one each case belongs to (every case shows "with <name>" — infer from the name and the content). Start from categories like: fellow founders, close friends, investors/VCs, potential hires / candidates / recruiting, work colleagues/teammates, family. DISCOVER and add other categories the evidence reveals (e.g. press, customers, acquaintances) — don't force everyone into two buckets. For each category, capture how his voice differs (tone, length, formality, emoji, openings/closings, what he cuts or adds) and when he gives no response.
 
-Rewrite the guide to minimize future edits, mis-skips, and missed drafts. Keep what's working; change only what the evidence supports. Do not overfit to one-offs.
+REFINE METHODICALLY AND INCREMENTALLY. Treat the current guide as the accumulated model of Ronak. Adjust only what THIS batch of evidence supports; keep everything else stable. Do NOT rewrite wholesale or swing the whole voice between two modes from one batch to the next — the goal is to converge on the underlying per-category patterns, not flip-flop. When a case contradicts the current guide, prefer a small, well-scoped refinement to the relevant category over a global change. Don't overfit to one-offs.
 
-Respond with ONLY valid JSON, no markdown fence:
-{"reflection": "<2-4 sentences on what the edits reveal and what you changed>", "systemPrompt": "<the full improved system prompt>"}`;
+Also keep learning WHEN TO GIVE NO RESPONSE (closings, acknowledgements, group noise, FYIs, his own already-complete turns) without skipping messages he'd actually answer.
 
-  const user = `CURRENT SYSTEM PROMPT:\n"""\n${systemPrompt}\n"""\n\nRECENT CASES:\n${batch}`;
+Keep the guide well-organized (a short general-voice section, then a clear section per category) and reasonably concise — refine, don't bloat.
 
-  const res = await callAnthropic({ model: REFLECT_MODEL, system, messages: [{ role: 'user', content: user }], max_tokens: 4000 });
+OUTPUT FORMAT (this is not JSON — follow it exactly):
+First write 2-4 sentences of analysis: what this batch revealed and what you changed.
+Then a line containing exactly:
+===GUIDE===
+Then the full updated style guide as raw text (no JSON, no code fences, no quoting).`;
+
+  const user = `CURRENT STYLE GUIDE:\n"""\n${systemPrompt}\n"""\n\nRECENT CASES:\n${batch}`;
+
+  const res = await callAnthropic({ model: REFLECT_MODEL, system, messages: [{ role: 'user', content: user }], max_tokens: 16000 });
   if (!res.ok) return res;
-  try {
-    const jsonText = res.text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
-    const parsed = JSON.parse(jsonText);
-    if (!parsed.systemPrompt || !parsed.reflection) throw new Error('missing fields');
-    return { ok: true, reflection: parsed.reflection, systemPrompt: parsed.systemPrompt };
-  } catch (e) {
-    return { ok: false, errorType: 'parse', error: 'Could not parse reflection output' };
-  }
+  const idx = res.text.indexOf('===GUIDE===');
+  if (idx === -1) return { ok: false, errorType: 'parse', error: 'Reflection output missing the ===GUIDE=== marker' };
+  const reflection = res.text.slice(0, idx).trim();
+  const newPrompt = res.text.slice(idx + '===GUIDE==='.length).replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '').trim();
+  if (!newPrompt || newPrompt.length < 200) return { ok: false, errorType: 'parse', error: 'Reflection produced no usable guide' };
+  return { ok: true, reflection: reflection || 'Updated the style guide.', systemPrompt: newPrompt };
 }
 
 module.exports = { hasKey, getApiKey, generateDraft, reflect, DRAFT_MODEL, REFLECT_MODEL };

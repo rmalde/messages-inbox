@@ -283,6 +283,11 @@ async function aiTick() {
   }
   if (changed && win) win.webContents.send('ai-changed');
 
+  // Fire a reflection if enough samples have piled up (e.g. while Ronak was
+  // replying from his phone) — don't rely solely on an in-app action to trigger
+  // it. Guarded internally by threshold/cooldown/in-progress checks.
+  maybeReflect();
+
   // 2) Draft the next message Ronak would send, given the current tail. Covers
   //    replies (last message is theirs) AND continuations (Ronak just texted and
   //    may be mid-burst). Throttled + guarded; backs off while the API is down.
@@ -361,11 +366,13 @@ async function maybeReflect() {
   if (Date.now() < aiReflectCooldownUntil) return;
   aiStatus.reflecting = true;
   try {
-    const samples = aiStore.pendingSamples().slice(0, REFLECT_EVERY);
+    // Reflect on up to 40 pending samples (broader view = less batch-to-batch
+    // swing), and clear only the ones we actually used.
+    const samples = aiStore.pendingSamples().slice(0, 40);
     const res = await ai.reflect({ systemPrompt: aiStore.currentPrompt(), samples });
     if (res.ok) {
       aiStore.addVersion({ reflection: res.reflection, systemPrompt: res.systemPrompt, sampleCount: samples.length });
-      aiStore.clearPending();
+      aiStore.clearPending(samples.length);
       if (win) win.webContents.send('ai-changed');
     } else {
       aiStatus.lastError = res.error;
