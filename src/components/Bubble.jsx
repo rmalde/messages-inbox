@@ -21,11 +21,17 @@ export default function Bubble({ msg, groupPos, isGroup, animate }) {
   const mine = msg.fromMe;
   const sms = msg.service && msg.service !== 'iMessage';
   const lp = msg.linkPreview;
+  // Strip U+FFFC — the invisible placeholder iMessage embeds where an
+  // attachment sits in the text — before deciding what this bubble contains.
+  const text = (msg.text || '').replace(/￼/g, '').trim();
   // When there's a card and the text is just a bare URL, hide the text (the
   // card represents it). Keep any text that has more than just the link.
-  const textIsBareUrl = lp && msg.text && /^https?:\/\/\S+$/i.test(msg.text.trim());
-  const showText = msg.text && !textIsBareUrl;
-  const emojiOnly = msg.text && !lp && EMOJI_ONLY.test(msg.text.trim()) && msg.attachments.length === 0;
+  const textIsBareUrl = lp && text && /^https?:\/\/\S+$/i.test(text);
+  const showText = text && !textIsBareUrl;
+  const emojiOnly = text && !lp && EMOJI_ONLY.test(text) && msg.attachments.length === 0;
+  // Image-only and link-card-only messages render bare — the media/card IS the
+  // bubble in Messages, with no colored wrapper around it.
+  const mediaOnly = !showText && (msg.attachments.length > 0 || !!lp);
   const tail = groupPos === 'single' || groupPos === 'last';
   const runStart = groupPos === 'single' || groupPos === 'first';
 
@@ -33,6 +39,7 @@ export default function Bubble({ msg, groupPos, isGroup, animate }) {
     'bubble', mine ? 'mine' : 'theirs',
     sms && mine ? 'sms' : '',
     emojiOnly ? 'emoji-only' : '',
+    mediaOnly ? 'media-only' : '',
     msg.pending ? 'pending' : '',
     'gp-' + groupPos,
     tail && !emojiOnly ? 'tail' : '',
@@ -45,7 +52,7 @@ export default function Bubble({ msg, groupPos, isGroup, animate }) {
         {isGroup && !mine && (
           tail
             ? <Avatar name={msg.sender} handle={msg.handle} size="sm" />
-            : <span style={{ width: 26, flexShrink: 0 }} />
+            : <span style={{ width: 28, flexShrink: 0 }} />
         )}
         <div className={cls}>
           {msg.replyPreview && (
@@ -57,7 +64,7 @@ export default function Bubble({ msg, groupPos, isGroup, animate }) {
           {msg.attachments.map((a) => (
             <Attachment key={a.id} att={a} />
           ))}
-          {showText && <span>{linkify(msg.text)}</span>}
+          {showText && <span>{linkify(text)}</span>}
           {lp && (
             <div
               className="link-card"

@@ -2,7 +2,7 @@ import React, { useRef, useLayoutEffect, useEffect } from 'react';
 import Avatar from './Avatar';
 import Bubble from './Bubble';
 import Composer from './Composer';
-import { daySeparator, shouldSeparate } from '../lib/format';
+import { daySeparator, shouldSeparate, sidebarTitle } from '../lib/format';
 
 function sameRun(a, b) {
   return a && b && a.fromMe === b.fromMe && a.sender === b.sender && !shouldSeparate(a.date, b.date);
@@ -66,11 +66,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
   return (
     <div className="main">
       <div className="thread-header">
-        <div className="header-center">
-          <Avatar name={convo.name} size="sm" handle={convo.isGroup ? undefined : convo.identifier} isGroup={convo.isGroup} participants={convo.participants} />
-          <span className="title">{convo.name}<span className="chev">›</span></span>
-        </div>
-        <div className="thread-actions">
+        <div className="thread-actions left">
           {convo.archived ? (
             <button className="icon-btn" onClick={() => onUnarchive(convo)} title="Move to Inbox">↩︎ Unarchive</button>
           ) : (
@@ -80,6 +76,12 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
               </svg>
             </button>
           )}
+        </div>
+        <div className="header-center">
+          <Avatar name={convo.name} handle={convo.isGroup ? undefined : convo.identifier} isGroup={convo.isGroup} participants={convo.participants} />
+          <span className="title">{sidebarTitle(convo.name, convo.isGroup)}<span className="chev">›</span></span>
+        </div>
+        <div className="thread-actions">
           <button className="icon-btn" title="FaceTime">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />

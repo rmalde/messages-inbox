@@ -82,6 +82,11 @@ export default function Composer({ onSend, disabled, draft }) {
           ))}
         </div>
       )}
+      <button className="attach-btn" type="button" tabIndex={-1} title="Attachments">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
       <div className={'composer-input-wrap' + (fromDraft ? ' draft' : '')}>
         <textarea
           ref={taRef}
@@ -92,20 +97,20 @@ export default function Composer({ onSend, disabled, draft }) {
           onChange={onChange}
           onKeyDown={onKeyDown}
         />
-        <button
-          className="emoji-btn"
-          onClick={() => setShowEmoji((s) => !s)}
-          title="Emoji"
-          type="button"
-        >
-          😀
+        <button className="send-btn" disabled={!text.trim() || disabled} onClick={submit} title="Send">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5" />
+            <polyline points="6 11 12 5 18 11" />
+          </svg>
         </button>
       </div>
-      <button className="send-btn" disabled={!text.trim() || disabled} onClick={submit} title="Send">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="19" x2="12" y2="5" />
-          <polyline points="6 11 12 5 18 11" />
-        </svg>
+      <button
+        className="emoji-btn"
+        onClick={() => setShowEmoji((s) => !s)}
+        title="Emoji"
+        type="button"
+      >
+        😀
       </button>
     </div>
   );
