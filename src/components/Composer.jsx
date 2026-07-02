@@ -82,11 +82,6 @@ export default function Composer({ onSend, disabled, draft }) {
           ))}
         </div>
       )}
-      <button className="attach-btn" type="button" tabIndex={-1} title="Attachments">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
       <div className={'composer-input-wrap' + (fromDraft ? ' draft' : '')}>
         <textarea
           ref={taRef}
@@ -110,7 +105,12 @@ export default function Composer({ onSend, disabled, draft }) {
         title="Emoji"
         type="button"
       >
-        😀
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+          <circle cx="12" cy="12" r="9.2" />
+          <path d="M8 14.2 a4.4 4.4 0 0 0 8 0" />
+          <circle cx="9" cy="9.6" r="0.6" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="9.6" r="0.6" fill="currentColor" stroke="none" />
+        </svg>
       </button>
     </div>
   );

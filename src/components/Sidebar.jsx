@@ -11,12 +11,13 @@ function preview(c) {
   return t;
 }
 
-function ArchiveGlyph() {
+/* SF-symbol-style archivebox: lid, box, handle — 1.8pt stroke, round caps. */
+function ArchiveGlyph({ size = 15 }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="21 8 21 21 3 21 3 8" />
-      <rect x="1" y="3" width="22" height="5" />
-      <line x1="10" y1="12" x2="14" y2="12" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="4.6" rx="1.2" />
+      <path d="M5 8.6 V18.4 a1.6 1.6 0 0 0 1.6 1.6 h10.8 a1.6 1.6 0 0 0 1.6 -1.6 V8.6" />
+      <line x1="10" y1="12.6" x2="14" y2="12.6" />
     </svg>
   );
 }
@@ -65,19 +66,9 @@ export default function Sidebar({
       <div className="sidebar-bar">
         <span className="spacer" />
         <button className="bar-btn ai-btn" title="AI style & prompt evolution" onClick={onOpenPrompts}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2l1.6 5.2L19 9l-5.4 1.8L12 16l-1.6-5.2L5 9l5.4-1.8L12 2z" />
-            <path d="M19 14l.8 2.4L22 17l-2.2.6L19 20l-.8-2.4L16 17l2.2-.6L19 14z" />
-          </svg>
-        </button>
-        <button className="bar-btn" title="Filters">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="4" y1="7" x2="20" y2="7" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="17" x2="14" y2="17" />
-          </svg>
-        </button>
-        <button className="bar-btn" title="New Message">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3.2 L13.9 9 a1 1 0 0 0 .64 .64 L20.3 11.5 a0.55 0.55 0 0 1 0 1 L14.54 14.36 a1 1 0 0 0 -.64 .64 L12 20.8 a0.55 0.55 0 0 1 -1 0 L9.46 15 a1 1 0 0 0 -.64 -.64 L3.7 12.5 a0.55 0.55 0 0 1 0 -1 L9.46 9.64 a1 1 0 0 0 .64 -.64 L11 3.2 a0.55 0.55 0 0 1 1 0 Z" transform="translate(-1.2 1.2) scale(0.92)" />
+            <path d="M18.6 3.2 l.75 2.06 a0.7 0.7 0 0 0 .42 .42 L21.8 6.4 a0.36 0.36 0 0 1 0 .68 l-2.03 .72 a0.7 0.7 0 0 0 -.42 .42 L18.6 10.3 a0.36 0.36 0 0 1 -.68 0 l-.72 -2.08 a0.7 0.7 0 0 0 -.42 -.42 L14.7 7.08 a0.36 0.36 0 0 1 0 -.68 l2.08 -.72 a0.7 0.7 0 0 0 .42 -.42 L17.92 3.2 a0.36 0.36 0 0 1 .68 0 Z" />
           </svg>
         </button>
       </div>
@@ -93,11 +84,10 @@ export default function Sidebar({
       <div className="segmented">
         <button className={filter === 'inbox' ? 'active' : ''} onClick={() => setFilter('inbox')}>
           Inbox
-          <span className="total">{counts.inbox}</span>
           {counts.unread > 0 && <span className="count">{counts.unread}</span>}
         </button>
         <button className={filter === 'archived' ? 'active' : ''} onClick={() => setFilter('archived')}>
-          Archived<span className="total">{counts.archived}</span>
+          Archived
         </button>
       </div>
 
@@ -127,7 +117,12 @@ export default function Sidebar({
               title={filter === 'archived' ? 'Move to Inbox' : 'Archive (⌘⇧E)'}
               onClick={(e) => { e.stopPropagation(); (filter === 'archived' ? onUnarchive : onArchive)(c); }}
             >
-              {filter === 'archived' ? '↩' : <ArchiveGlyph />}
+              {filter === 'archived' ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 14 v4.4 A1.6 1.6 0 0 0 5.6 20 h12.8 a1.6 1.6 0 0 0 1.6 -1.6 V14" />
+                  <path d="M12 14.5 V4.5 M8 8.2 L12 4.2 L16 8.2" />
+                </svg>
+              ) : <ArchiveGlyph />}
             </button>
           </div>
         ))}

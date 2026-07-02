@@ -117,13 +117,13 @@ body {
   -webkit-app-region: no-drag;
   width: 32px; height: 32px;
   border: none; background: transparent;
-  color: var(--icon);
+  color: var(--text-secondary);
   border-radius: 8px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.13s ease;
 }
-.bar-btn:hover { background: var(--hover); }
+.bar-btn:hover { background: var(--hover); color: var(--text); }
 
 .search {
   -webkit-app-region: no-drag;
@@ -156,8 +156,6 @@ body {
   transition: all 0.16s ease;
   display: flex; align-items: center; justify-content: center; gap: 5px;
 }
-.segmented button .total { font-size: 11px; font-weight: 650; color: var(--text-tertiary); }
-.segmented button.active .total { color: var(--text-secondary); }
 .segmented button .count {
   font-size: 10px; min-width: 14px; height: 14px; padding: 0 4px;
   border-radius: 7px; background: var(--blue); color: #fff;
@@ -237,7 +235,7 @@ body {
 .row-archive {
   position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
   width: 27px; height: 27px; border-radius: 50%; border: none;
-  background: var(--card); color: var(--icon);
+  background: var(--card); color: var(--text-secondary);
   display: none; align-items: center; justify-content: center; cursor: pointer;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.22);
 }
@@ -283,12 +281,12 @@ body {
 .thread-actions.left { left: 12px; right: auto; }
 .icon-btn {
   -webkit-app-region: no-drag;
-  background: transparent; border: none; color: var(--icon); cursor: pointer;
+  background: transparent; border: none; color: var(--text-secondary); cursor: pointer;
   padding: 7px; border-radius: 8px; display: flex; align-items: center; gap: 5px;
   font-size: 12.5px; font-weight: 590;
   transition: background 0.12s ease;
 }
-.icon-btn:hover { background: var(--hover); }
+.icon-btn:hover { background: var(--hover); color: var(--text); }
 
 .messages {
   flex: 1; overflow-y: auto;
@@ -438,13 +436,6 @@ body {
 }
 .composer > * { position: relative; z-index: 1; }
 
-.attach-btn {
-  width: 30px; height: 30px; border-radius: 50%; border: none; flex-shrink: 0;
-  background: var(--field); color: var(--text-secondary);
-  display: flex; align-items: center; justify-content: center; cursor: default;
-  margin-bottom: 1px;
-}
-
 .composer-input-wrap {
   flex: 1; position: relative;
   background: transparent;
@@ -473,11 +464,12 @@ body {
 .send-btn:not(:disabled):active { transform: scale(0.82); }
 
 .emoji-btn {
-  background: transparent; border: none; cursor: pointer; font-size: 20px;
-  padding: 0; margin-bottom: 3px; flex-shrink: 0; opacity: 0.6; line-height: 1;
-  transition: opacity 0.12s, transform 0.12s;
+  background: transparent; border: none; cursor: pointer;
+  padding: 0; margin-bottom: 4px; flex-shrink: 0; line-height: 0;
+  color: var(--text-secondary);
+  transition: color 0.12s, transform 0.12s;
 }
-.emoji-btn:hover { opacity: 1; transform: scale(1.08); }
+.emoji-btn:hover { color: var(--text); transform: scale(1.06); }
 
 /* AI draft present: a quiet blue tint on the pill border. No glow. */
 .composer-input-wrap.draft { border-color: color-mix(in srgb, var(--blue) 55%, transparent); }
@@ -622,13 +614,10 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.no-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-tertiary); gap: 12px; }
-.no-chat .big {
-  width: 76px; height: 76px; border-radius: 50%;
-  background: var(--blue);
-  display: flex; align-items: center; justify-content: center; font-size: 38px;
-  box-shadow: 0 8px 24px rgba(10, 132, 255, 0.3);
-}
+.no-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-tertiary); gap: 6px; }
+.no-chat svg { margin-bottom: 10px; opacity: 0.7; }
+.nc-title { font-size: 15px; font-weight: 600; color: var(--text-secondary); }
+.nc-sub { font-size: 12.5px; color: var(--text-tertiary); }
 
 /* ===================== Animations ===================== */
 @keyframes bubbleIn { from { opacity: 0; transform: translateY(10px) scale(0.92); } to { opacity: 1; transform: translateY(0) scale(1); } }

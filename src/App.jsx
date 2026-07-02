@@ -282,8 +282,11 @@ export default function App() {
       ) : (
         <div className="main">
           <div className="no-chat">
-            <div className="big">💬</div>
-            <div>Select a conversation</div>
+            <svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3.6 c-5.2 0 -9.2 3.4 -9.2 7.7 c0 2.2 1.05 4.15 2.75 5.55 c-.2 1.15 -.75 2.2 -1.6 3.05 c-.25 .25 -.05 .7 .3 .65 c1.75 -.2 3.3 -.85 4.5 -1.7 c1.02 .3 2.12 .45 3.25 .45 c5.2 0 9.2 -3.4 9.2 -7.7 s-4 -7.6 -9.2 -7.6 Z" />
+            </svg>
+            <div className="nc-title">No Conversation Selected</div>
+            <div className="nc-sub">Choose a conversation from the list to read and reply.</div>
           </div>
         </div>
       )}

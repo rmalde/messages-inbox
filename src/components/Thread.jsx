@@ -66,27 +66,39 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
   return (
     <div className="main">
       <div className="thread-header">
-        <div className="thread-actions left">
-          {convo.archived ? (
-            <button className="icon-btn" onClick={() => onUnarchive(convo)} title="Move to Inbox">↩︎ Unarchive</button>
-          ) : (
-            <button className="icon-btn" onClick={() => onArchive(convo)} title="Archive (⌘⇧E)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="21 8 21 21 3 21 3 8" /><rect x="1" y="3" width="22" height="5" /><line x1="10" y1="12" x2="14" y2="12" />
-              </svg>
-            </button>
-          )}
-        </div>
         <div className="header-center">
           <Avatar name={convo.name} handle={convo.isGroup ? undefined : convo.identifier} isGroup={convo.isGroup} participants={convo.participants} />
           <span className="title">{sidebarTitle(convo.name, convo.isGroup)}<span className="chev">›</span></span>
         </div>
         <div className="thread-actions">
-          <button className="icon-btn" title="FaceTime">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-            </svg>
-          </button>
+          {!convo.isGroup && convo.identifier && (
+            <button
+              className="icon-btn"
+              title="FaceTime"
+              onClick={() => window.api.openExternal('facetime://' + encodeURIComponent(convo.identifier))}
+            >
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2.5" y="6" width="13" height="12" rx="3.2" />
+                <path d="M15.5 12.6 L20 15.9 a0.9 0.9 0 0 0 1.5 -.75 V8.85 a0.9 0.9 0 0 0 -1.5 -.75 L15.5 11.4" />
+              </svg>
+            </button>
+          )}
+          {convo.archived ? (
+            <button className="icon-btn" onClick={() => onUnarchive(convo)} title="Move to Inbox">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 14 v4.4 A1.6 1.6 0 0 0 5.6 20 h12.8 a1.6 1.6 0 0 0 1.6 -1.6 V14" />
+                <path d="M12 14.5 V4.5 M8 8.2 L12 4.2 L16 8.2" />
+              </svg>
+            </button>
+          ) : (
+            <button className="icon-btn" onClick={() => onArchive(convo)} title="Archive (⌘⇧E)">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="4.6" rx="1.2" />
+                <path d="M5 8.6 V18.4 a1.6 1.6 0 0 0 1.6 1.6 h10.8 a1.6 1.6 0 0 0 1.6 -1.6 V8.6" />
+                <line x1="10" y1="12.6" x2="14" y2="12.6" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
