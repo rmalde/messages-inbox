@@ -101,7 +101,9 @@ export default function Sidebar({
       <div className="convo-list" ref={listRef} onScroll={onScroll}>
         {conversations.length === 0 && (
           <div className="empty-list">
-            {filter === 'archived' ? 'No archived conversations' : 'Inbox zero ✨'}
+            {search.trim()
+              ? `No results for “${search.trim()}”`
+              : filter === 'archived' ? 'No archived conversations' : 'Inbox zero ✨'}
           </div>
         )}
         {shown.map((c) => (

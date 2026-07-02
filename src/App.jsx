@@ -210,6 +210,12 @@ export default function App() {
   // (e.code is keyboard-layout independent) rather than via a menu accelerator,
   // which proved unreliable for these keys.
   useEffect(() => {
+    // Inactive-window vitality: blue selection is an active-window privilege.
+    const onBlur = () => document.body.classList.add('win-blurred');
+    const onFocus = () => document.body.classList.remove('win-blurred');
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+
     const onKey = (e) => {
       if (e.metaKey && !e.shiftKey && !e.altKey && !e.ctrlKey && e.code === 'KeyF') {
         e.preventDefault();
@@ -222,7 +228,11 @@ export default function App() {
       else if (e.code === 'BracketLeft') { e.preventDefault(); navStep(-1); }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [navStep]);
 
   const counts = useMemo(() => ({

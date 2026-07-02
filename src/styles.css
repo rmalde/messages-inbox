@@ -75,6 +75,11 @@
 }
 
 * { box-sizing: border-box; }
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--blue) 55%, transparent);
+  outline-offset: 1px;
+}
 ::selection { background: color-mix(in srgb, var(--blue) 30%, transparent); }
 input, textarea { caret-color: var(--blue); }
 html, body, #root { margin: 0; height: 100%; overflow: hidden; }
@@ -106,6 +111,19 @@ body {
 
 .app { display: flex; height: 100vh; }
 
+/* Inactive window: blue selection is an active-window privilege. */
+body.win-blurred .convo.selected { background: var(--field); }
+body.win-blurred .convo.selected .convo-name,
+body.win-blurred .convo.selected .convo-preview,
+body.win-blurred .convo.selected .convo-time,
+body.win-blurred .convo.selected .draft-chip { color: var(--text); }
+body.win-blurred .convo.selected .convo-preview,
+body.win-blurred .convo.selected .convo-time { color: var(--text-secondary); }
+body.win-blurred .unread-dot { background: var(--text-tertiary); }
+body.win-blurred .segmented button .count { background: var(--text-tertiary); }
+body.win-blurred .convo.selected .unread-dot { background: var(--text-tertiary); }
+body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px var(--bg); }
+
 /* ===================== Sidebar ===================== */
 .sidebar {
   width: 312px;
@@ -134,11 +152,12 @@ body {
   border: none; background: transparent;
   color: var(--text-secondary);
   border-radius: var(--rad-m);
-  cursor: pointer;
+  cursor: default;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.13s ease;
 }
 .bar-btn:hover { background: var(--hover); color: var(--text); }
+.bar-btn:active { background: var(--field); transform: scale(0.94); }
 
 .search {
   -webkit-app-region: no-drag;
@@ -152,6 +171,7 @@ body {
   border: none; background: transparent; outline: none;
   color: var(--text); font-size: 13px; width: 100%;
 }
+.search:focus-within { background: color-mix(in srgb, var(--field) 55%, var(--hover)); }
 .search input::placeholder { color: var(--text-tertiary); }
 .search svg { color: var(--text-secondary); flex-shrink: 0; }
 
@@ -166,7 +186,7 @@ body {
   flex: 1; border: none; background: transparent;
   color: var(--text-secondary);
   font-size: 11.5px; font-weight: 590;
-  padding: 3px 8px; border-radius: var(--rad-s); cursor: pointer;
+  padding: 3px 8px; border-radius: var(--rad-s); cursor: default;
   transition: all 0.16s ease;
   display: flex; align-items: center; justify-content: center; gap: 5px;
 }
@@ -187,10 +207,11 @@ body {
   display: flex; gap: 12px; align-items: center;
   padding: 12px 10px 12px 24px;
   border-radius: var(--rad-l);
-  cursor: pointer; position: relative;
+  cursor: default; position: relative;
   transition: background 0.1s ease;
 }
 .convo:hover { background: var(--hover); }
+.convo:active:not(.selected) { background: var(--field); }
 .convo.selected { background: var(--blue); }
 .convo.selected .convo-name,
 .convo.selected .convo-preview,
@@ -204,6 +225,7 @@ body {
   transform: translateY(-50%);
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--blue);
+  animation: pop 0.28s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 .convo.selected .unread-dot { background: #fff; }
 
@@ -248,10 +270,12 @@ body {
   position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
   width: 27px; height: 27px; border-radius: 50%; border: none;
   background: var(--card); color: var(--text-secondary);
-  display: none; align-items: center; justify-content: center; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; cursor: default;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.22);
+  opacity: 0; transform: translateY(-50%) scale(0.86); pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
-.convo:hover .row-archive { display: flex; }
+.convo:hover .row-archive { opacity: 1; transform: translateY(-50%) scale(1); pointer-events: auto; }
 .convo.selected .row-archive { background: rgba(255, 255, 255, 0.25); color: #fff; box-shadow: none; }
 
 .empty-list { text-align: center; color: var(--text-secondary); padding: 56px 20px; font-size: 13px; }
@@ -300,12 +324,13 @@ body {
 .thread-actions.left { left: 12px; right: auto; }
 .icon-btn {
   -webkit-app-region: no-drag;
-  background: transparent; border: none; color: var(--text-secondary); cursor: pointer;
+  background: transparent; border: none; color: var(--text-secondary); cursor: default;
   padding: 7px; border-radius: var(--rad-m); display: flex; align-items: center; gap: 5px;
   font-size: 12.5px; font-weight: 590;
   transition: background 0.12s ease;
 }
 .icon-btn:hover { background: var(--hover); color: var(--text); }
+.icon-btn:active { background: var(--field); transform: scale(0.94); }
 
 .messages {
   flex: 1; overflow-y: auto;
@@ -347,8 +372,9 @@ body {
 .bubble.mine { background: var(--blue); color: #fff; }
 .bubble.mine.sms { background: var(--green); }
 .bubble.theirs { background: var(--incoming); color: var(--incoming-text); }
-.bubble.pending { opacity: 0.6; }
-.bubble a { color: inherit; text-decoration: underline; }
+.bubble.pending { animation: pendingPulse 1.6s ease-in-out infinite; }
+@keyframes pendingPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.75; } }
+.bubble a { color: inherit; text-decoration: underline; cursor: pointer; }
 .bubble.emoji-only { background: transparent !important; font-size: 46px; padding: 2px 4px; line-height: 1.08; }
 /* image-only / card-only messages: the media IS the bubble */
 .bubble.media-only { background: transparent !important; padding: 0; color: var(--text); }
@@ -421,23 +447,25 @@ body {
   width: 32px; height: 32px; border-radius: 50%; border: 0.5px solid var(--glass-edge);
   background: color-mix(in srgb, var(--panel) 78%, transparent);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  color: var(--text-secondary); cursor: pointer;
+  color: var(--text-secondary); cursor: default;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   animation: popUp 0.18s cubic-bezier(0.2, 1, 0.3, 1);
 }
 .jump-btn:hover { color: var(--text); }
+.jump-btn:active { transform: scale(0.9); }
 
 /* Rich URL preview card (decoded locally from the iMessage link balloon). */
 .link-card {
-  display: block; cursor: pointer; margin: 3px 0;
+  display: block; cursor: default; margin: 3px 0;
   min-width: 210px; max-width: 300px;
   border-radius: var(--rad-l); overflow: hidden;
   background: var(--card);
   transition: filter 0.12s ease;
 }
 .link-card:hover { filter: brightness(1.05); }
-.lc-img { display: block; width: 100%; max-height: 158px; object-fit: cover; background: rgba(0, 0, 0, 0.08); }
+.link-card:active { filter: brightness(0.97); transform: scale(0.995); }
+.lc-img { display: block; width: 100%; max-height: 158px; object-fit: cover; background: rgba(0, 0, 0, 0.08); -webkit-user-drag: none; }
 .bubble.mine:not(.media-only) .link-card { background: rgba(0, 0, 0, 0.22); }
 .bubble.media-only .link-card { margin: 0; }
 .lc-title { font-weight: 600; font-size: 13px; line-height: 1.28; padding: 10px 12px 0;
@@ -446,7 +474,7 @@ body {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .lc-site { font-size: 11px; opacity: 0.5; padding: 6px 12px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.attach-img { display: block; max-width: 260px; max-height: 320px; border-radius: 15px; margin: 2px 0; object-fit: cover; }
+.attach-img { display: block; max-width: 260px; max-height: 320px; border-radius: var(--rad-l); margin: 2px 0; object-fit: cover; -webkit-user-drag: none; }
 .attach-file {
   display: flex; align-items: center; gap: 7px;
   font-size: var(--t-sub); padding: 6px 10px; margin: 2px 0;
@@ -488,12 +516,13 @@ body {
   max-height: 140px; padding: 6px 36px 6px 13px; user-select: text;
 }
 .composer textarea::placeholder { color: var(--text-tertiary); }
+.composer textarea:disabled { opacity: 0.5; }
 
 /* Send button pinned to the pill's corner — perfectly inset at any height. */
 .send-btn {
   position: absolute; right: 3px; bottom: 3px;
   width: 24px; height: 24px; border-radius: 50%; border: none;
-  background: var(--blue); color: #fff; cursor: pointer;
+  background: var(--blue); color: #fff; cursor: default;
   display: flex; align-items: center; justify-content: center;
   transition: transform 0.13s cubic-bezier(0.2, 1.4, 0.4, 1), opacity 0.13s;
 }
@@ -502,7 +531,7 @@ body {
 .send-btn:not(:disabled):active { transform: scale(0.82); }
 
 .emoji-btn {
-  background: transparent; border: none; cursor: pointer;
+  background: transparent; border: none; cursor: default;
   padding: 0; margin-bottom: 4px; flex-shrink: 0; line-height: 0;
   color: var(--text-secondary);
   transition: color 0.12s, transform 0.12s;
@@ -523,7 +552,7 @@ body {
 }
 .emoji-group-name { font-size: 11px; color: var(--text-secondary); font-weight: 700; margin: 7px 2px 4px; }
 .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); }
-.emoji-grid button { border: none; background: transparent; font-size: 22px; padding: 3px; border-radius: 7px; cursor: pointer; transition: background 0.1s, transform 0.1s; }
+.emoji-grid button { border: none; background: transparent; font-size: 22px; padding: 3px; border-radius: 7px; cursor: default; transition: background 0.1s, transform 0.1s; }
 .emoji-grid button:hover { background: var(--hover); transform: scale(1.15); }
 
 /* ===================== Access screen ===================== */
@@ -548,7 +577,7 @@ body {
 .access-actions { display: flex; gap: 10px; }
 .btn-primary, .btn-secondary {
   border: none; border-radius: 9px; padding: 8px 18px; font-size: 13px;
-  font-weight: 600; cursor: pointer; transition: filter 0.12s ease, background 0.12s ease;
+  font-weight: 600; cursor: default; transition: filter 0.12s ease, background 0.12s ease;
 }
 .btn-primary { background: var(--blue); color: #fff; }
 .btn-primary:hover { filter: brightness(1.08); }
@@ -582,11 +611,11 @@ body {
 .prompt-title svg { color: var(--text-secondary); }
 .prompt-close {
   border: none; background: var(--hover); color: var(--text);
-  width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  width: 28px; height: 28px; border-radius: 8px; cursor: default; font-size: 13px;
 }
 .prompt-close:hover { background: var(--field); }
 .prompt-tabs { display: flex; gap: 2px; margin-left: 14px; background: var(--field); border-radius: 8px; padding: 2px; }
-.prompt-tabs button { border: none; background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+.prompt-tabs button { border: none; background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: default; }
 .prompt-tabs button.active { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14); }
 
 .edit-card { border: 1px solid var(--separator); border-radius: 12px; padding: 11px 12px; margin-bottom: 10px; }
@@ -641,9 +670,10 @@ body {
 }
 .toast-undo {
   background: none; border: none; color: var(--blue);
-  font-weight: 700; font-size: 13px; cursor: pointer; padding: 0;
+  font-weight: 700; font-size: 13px; cursor: default; padding: 0;
 }
 .toast-undo:hover { text-decoration: underline; }
+.toast-undo:active { opacity: 0.6; }
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(12px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
