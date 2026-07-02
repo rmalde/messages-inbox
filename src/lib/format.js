@@ -77,18 +77,11 @@ export function initials(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-// Soft Apple-style avatar gradients — a light tint up top easing into a richer
-// tone of the same hue. Lighter and gently more saturated than fully muted, but
-// still calmer than iMessage's vivid palette.
-const AVATAR_COLORS = [
-  ['#F2A39B', '#E8786F'], ['#F2C794', '#E5A663'], ['#EBD98C', '#D8BD5E'],
-  ['#A6D9A9', '#7DC288'], ['#9FD2E6', '#74B5D4'], ['#A6BBE0', '#7E97CC'],
-  ['#C3AEDB', '#9E84C2'], ['#E6B0C8', '#CE8AAC'], ['#BBC0CA', '#969EAC'],
-];
+// Apple monograms are uniform silver-gray — colored letter-tiles are an
+// Android/Material idiom. Color is reserved for meaning (unread, selection,
+// send); identity comes from the initials and contact photos.
+const MONOGRAM = ['#9fa4ad', '#7b8089'];
 
-export function avatarGradient(name) {
-  let h = 0;
-  const s = name || '?';
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+export function avatarGradient() {
+  return MONOGRAM;
 }

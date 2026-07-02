@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useRef, useLayoutEffect, useEffect, useState } from 'react';
 import Avatar from './Avatar';
 import Bubble from './Bubble';
 import Composer from './Composer';
@@ -14,6 +14,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
   const scrolledGuid = useRef(null);    // guid we've already pinned to bottom
   const atBottom = useRef(true);        // was the user pinned to the bottom?
   const seenIds = useRef(new Set());    // message ids already rendered for this chat
+  const [showJump, setShowJump] = useState(false); // scroll-to-bottom chip
 
   // Reset the "seen" set when switching conversations.
   useEffect(() => { seenIds.current = new Set(); }, [convo.guid]);
@@ -27,7 +28,15 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
   // so a tall incoming bubble can't fool a post-insert distance check.
   function onScroll() {
     const el = scrollRef.current;
-    if (el) atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (!el) return;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    atBottom.current = dist < 120;
+    setShowJump(dist > 400);
+  }
+
+  function jumpToBottom() {
+    const el = scrollRef.current;
+    if (el) { el.scrollTop = el.scrollHeight; atBottom.current = true; setShowJump(false); }
   }
 
   useLayoutEffect(() => {
@@ -49,6 +58,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
       setTimeout(() => { pin(); el.style.scrollBehavior = 'smooth'; }, 140); // after async images
       scrolledGuid.current = convo.guid;
       atBottom.current = true;
+      setShowJump(false);
     } else if (isNew && (atBottom.current || last.fromMe)) {
       // New message: follow it to the bottom if the user was already there, or
       // whenever it's one they just sent (incl. from another device).
@@ -123,6 +133,14 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
           );
         })}
       </div>
+
+      {showJump && (
+        <button className="jump-btn" onClick={jumpToBottom} title="Jump to latest">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="5 9 12 16 19 9" />
+          </svg>
+        </button>
+      )}
 
       <Composer key={convo.guid} draft={draft} onSend={(t) => onSend(convo, t)} />
     </div>
