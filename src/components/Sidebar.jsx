@@ -127,6 +127,12 @@ export default function Sidebar({
           </div>
         ))}
       </div>
+
+      <div className="list-footer">
+        {filter === 'inbox'
+          ? `${counts.inbox.toLocaleString()} conversation${counts.inbox === 1 ? '' : 's'}${counts.unread ? ` · ${counts.unread} unread` : ''}`
+          : `${counts.archived.toLocaleString()} archived`}
+      </div>
     </div>
   );
 }
