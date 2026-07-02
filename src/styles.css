@@ -29,8 +29,20 @@
   --card: #f2f2f7;
   --scrollbar: rgba(0, 0, 0, 0.16);
 
-  --r: 19px;
-  --rf: 6px;
+  /* Type ramp — sizes have roles, not call sites. */
+  --t-title: 13.5px;   /* list names, panel titles */
+  --t-body: 14.5px;    /* message text */
+  --t-sub: 13px;       /* previews, secondary body */
+  --t-caption: 11.5px; /* times, header title */
+  --t-micro: 10.5px;   /* labels, footers, chips */
+
+  /* Radius scale */
+  --rad-s: 6px;
+  --rad-m: 8px;
+  --rad-l: 12px;
+  --rad-xl: 16px;
+  --r: 19px;    /* bubble */
+  --rf: 6px;    /* grouped corner */
 
   --glass-blur: blur(40px) saturate(180%);
   --glass-edge: rgba(0, 0, 0, 0.08);
@@ -121,7 +133,7 @@ body {
   width: 32px; height: 32px;
   border: none; background: transparent;
   color: var(--text-secondary);
-  border-radius: 8px;
+  border-radius: var(--rad-m);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.13s ease;
@@ -132,7 +144,7 @@ body {
   -webkit-app-region: no-drag;
   display: flex; align-items: center; gap: 6px;
   background: var(--field);
-  border-radius: 7px;
+  border-radius: var(--rad-m);
   padding: 4px 8px;
   margin: 2px 12px 8px;
 }
@@ -147,14 +159,14 @@ body {
   -webkit-app-region: no-drag;
   display: flex; gap: 2px;
   background: var(--field);
-  border-radius: 8px; padding: 2px;
+  border-radius: var(--rad-m); padding: 2px;
   margin: 0 12px 4px;
 }
 .segmented button {
   flex: 1; border: none; background: transparent;
   color: var(--text-secondary);
   font-size: 11.5px; font-weight: 590;
-  padding: 3px 8px; border-radius: 6px; cursor: pointer;
+  padding: 3px 8px; border-radius: var(--rad-s); cursor: pointer;
   transition: all 0.16s ease;
   display: flex; align-items: center; justify-content: center; gap: 5px;
 }
@@ -172,9 +184,9 @@ body {
 
 /* Rows: no separators — Messages relies on spacing alone. */
 .convo {
-  display: flex; gap: 11px; align-items: center;
-  padding: 13px 10px 13px 24px;
-  border-radius: 12px;
+  display: flex; gap: 12px; align-items: center;
+  padding: 12px 10px 12px 24px;
+  border-radius: var(--rad-l);
   cursor: pointer; position: relative;
   transition: background 0.1s ease;
 }
@@ -196,7 +208,7 @@ body {
 .convo.selected .unread-dot { background: #fff; }
 
 .avatar {
-  width: 45px; height: 45px; border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%;
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   color: rgba(255, 255, 255, 0.95); font-weight: 500; font-size: 16px; letter-spacing: 0.02em;
   background-size: cover; background-position: center;
@@ -220,16 +232,16 @@ body {
 .convo-body { flex: 1; min-width: 0; }
 .convo-row1 { display: flex; align-items: baseline; gap: 6px; }
 .convo-name {
-  font-weight: 600; font-size: 13.5px;
+  font-weight: 600; font-size: var(--t-title); letter-spacing: -0.1px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
 }
 .convo.unread .convo-name { font-weight: 690; }
-.convo-time { font-size: 11.5px; color: var(--text-secondary); flex-shrink: 0; font-weight: 400; }
+.convo-time { font-size: var(--t-caption); color: var(--text-secondary); flex-shrink: 0; font-weight: 400; font-variant-numeric: tabular-nums; }
 .convo-time .chev { display: none; }
 .convo-preview {
-  font-size: 13px; color: var(--text-secondary); margin-top: 0.5px;
+  font-size: var(--t-sub); color: var(--text-secondary); margin-top: 0.5px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden; line-height: 1.32; max-height: 2.7em;
+  overflow: hidden; line-height: 17px; max-height: 34px;
 }
 
 .row-archive {
@@ -246,8 +258,8 @@ body {
 
 /* Status footer (like Mail): quiet, always-visible totals. */
 .list-footer {
-  padding: 7px 10px 9px; text-align: center;
-  font-size: 10.5px; color: var(--text-tertiary); letter-spacing: 0;
+  padding: 8px 10px; text-align: center;
+  font-size: var(--t-micro); color: var(--text-tertiary); font-variant-numeric: tabular-nums;
   border-top: 1px solid var(--separator);
 }
 
@@ -279,7 +291,7 @@ body {
 .thread-header .avatar.group .g-tile.back,
 .thread-header .avatar.group .g-tile.front { font-size: 8px; }
 .header-center .title {
-  font-size: 11.5px; font-weight: 600; display: flex; align-items: center; gap: 2px;
+  font-size: var(--t-caption); font-weight: 600; display: flex; align-items: center; gap: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   color: var(--text);
 }
@@ -289,7 +301,7 @@ body {
 .icon-btn {
   -webkit-app-region: no-drag;
   background: transparent; border: none; color: var(--text-secondary); cursor: pointer;
-  padding: 7px; border-radius: 8px; display: flex; align-items: center; gap: 5px;
+  padding: 7px; border-radius: var(--rad-m); display: flex; align-items: center; gap: 5px;
   font-size: 12.5px; font-weight: 590;
   transition: background 0.12s ease;
 }
@@ -306,7 +318,7 @@ body {
 
 .day-sep {
   align-self: center; font-size: 11px; color: var(--text-tertiary);
-  margin: 20px 0 10px; font-weight: 400; letter-spacing: 0;
+  margin: 20px 0 8px; font-weight: 400; font-variant-numeric: tabular-nums;
 }
 .day-sep b { font-weight: 650; color: var(--text-tertiary); }
 
@@ -318,9 +330,9 @@ body {
 .msg-row:has(.reactions) { margin-top: 18px; }
 .msg-row.grp-start:has(.reactions) .sender-label { margin-bottom: 20px; }
 
-.sender-label { font-size: 10.5px; color: var(--text-tertiary); margin: 0 0 2px 47px; font-weight: 400; }
+.sender-label { font-size: var(--t-micro); color: var(--text-tertiary); margin: 0 0 2px 47px; font-weight: 400; }
 
-.bubble-wrap { display: flex; align-items: flex-end; gap: 7px; max-width: 72%; }
+.bubble-wrap { display: flex; align-items: flex-end; gap: 7px; max-width: min(72%, 460px); }
 .msg-row.mine .bubble-wrap { flex-direction: row-reverse; }
 
 /* Flat bubbles — exactly like Messages. */
@@ -328,7 +340,7 @@ body {
   position: relative;
   padding: 7px 12px;
   border-radius: var(--r);
-  font-size: 14.5px; line-height: 1.32;
+  font-size: var(--t-body); line-height: 19px;
   word-wrap: break-word; overflow-wrap: anywhere; white-space: pre-wrap;
   max-width: 100%; user-select: text;
 }
@@ -372,10 +384,10 @@ body {
 }
 
 .reply-quote {
-  border-left: 3px solid currentColor; opacity: 0.8;
-  padding: 1px 8px; margin-bottom: 5px; font-size: 13px; line-height: 1.25;
+  border-left: 2px solid currentColor; opacity: 0.72;
+  padding: 1px 8px; margin: 2px 0 6px; font-size: var(--t-sub); line-height: 17px;
 }
-.reply-quote .who { font-weight: 700; display: block; font-size: 11px; margin-bottom: 1px; }
+.reply-quote .who { font-weight: 650; display: block; font-size: var(--t-micro); margin-bottom: 1px; }
 
 .reactions { position: absolute; top: -18px; display: flex; }
 .msg-row.theirs .reactions { right: -12px; flex-direction: row-reverse; }
@@ -393,7 +405,7 @@ body {
 /* Hover timestamp: floats under the bubble — reserves no layout space. */
 .bubble-time {
   position: absolute; bottom: -15px; z-index: 5;
-  font-size: 10px; color: var(--text-secondary); white-space: nowrap;
+  font-size: 10px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums;
   background: color-mix(in srgb, var(--panel) 92%, transparent);
   border-radius: 6px; padding: 0 6px; line-height: 15px;
   opacity: 0; transition: opacity 0.15s ease; pointer-events: none;
@@ -405,7 +417,7 @@ body {
 
 /* Scroll-to-bottom chip — appears when you've scrolled up. */
 .jump-btn {
-  position: absolute; right: 16px; bottom: 64px; z-index: 25;
+  position: absolute; right: 16px; bottom: 60px; z-index: 25;
   width: 32px; height: 32px; border-radius: 50%; border: 0.5px solid var(--glass-edge);
   background: color-mix(in srgb, var(--panel) 78%, transparent);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
@@ -420,7 +432,7 @@ body {
 .link-card {
   display: block; cursor: pointer; margin: 3px 0;
   min-width: 210px; max-width: 300px;
-  border-radius: 14px; overflow: hidden;
+  border-radius: var(--rad-l); overflow: hidden;
   background: var(--card);
   transition: filter 0.12s ease;
 }
@@ -435,7 +447,12 @@ body {
 .lc-site { font-size: 11px; opacity: 0.5; padding: 6px 12px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .attach-img { display: block; max-width: 260px; max-height: 320px; border-radius: 15px; margin: 2px 0; object-fit: cover; }
-.attach-file { display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 2px 0; }
+.attach-file {
+  display: flex; align-items: center; gap: 7px;
+  font-size: var(--t-sub); padding: 6px 10px; margin: 2px 0;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border-radius: var(--rad-m);
+}
 
 /* ===================== Composer (floating) ===================== */
 .composer {
@@ -475,7 +492,7 @@ body {
 /* Send button pinned to the pill's corner — perfectly inset at any height. */
 .send-btn {
   position: absolute; right: 3px; bottom: 3px;
-  width: 25px; height: 25px; border-radius: 50%; border: none;
+  width: 24px; height: 24px; border-radius: 50%; border: none;
   background: var(--blue); color: #fff; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: transform 0.13s cubic-bezier(0.2, 1.4, 0.4, 1), opacity 0.13s;
@@ -496,10 +513,10 @@ body {
 .composer-input-wrap.draft { border-color: color-mix(in srgb, var(--blue) 55%, transparent); }
 
 .emoji-pop {
-  position: absolute; bottom: 52px; right: 10px; width: 296px; max-height: 264px;
+  position: absolute; bottom: 52px; right: 14px; width: 296px; max-height: 264px;
   overflow-y: auto; background: var(--panel);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  border: 0.5px solid var(--glass-edge); border-radius: 16px;
+  border: 0.5px solid var(--glass-edge); border-radius: var(--rad-xl);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); padding: 8px 10px; z-index: 50;
   animation: popUp 0.16s cubic-bezier(0.2, 1, 0.3, 1);
   transform-origin: bottom right;
