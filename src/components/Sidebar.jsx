@@ -78,7 +78,14 @@ export default function Sidebar({
           <circle cx="11" cy="11" r="7" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
-        <input placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input
+          placeholder="Search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') { setSearch(''); e.currentTarget.blur(); }
+          }}
+        />
       </div>
 
       <div className="segmented">

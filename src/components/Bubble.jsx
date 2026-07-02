@@ -1,7 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Attachment from './Attachment';
 import Avatar from './Avatar';
 import { bubbleTime } from '../lib/format';
+
+// Rich-link hero images, cached across renders (path -> dataUrl|null).
+const linkImgCache = new Map();
+
+function LinkCard({ lp }) {
+  const [img, setImg] = useState(() => (lp.imagePath && linkImgCache.get(lp.imagePath)) || null);
+  useEffect(() => {
+    if (!lp.imagePath) { setImg(null); return; }
+    if (linkImgCache.has(lp.imagePath)) { setImg(linkImgCache.get(lp.imagePath)); return; }
+    let live = true;
+    window.api.attachment(lp.imagePath).then((d) => {
+      const url = (d && d.dataUrl) || null;
+      linkImgCache.set(lp.imagePath, url);
+      if (live) setImg(url);
+    });
+    return () => { live = false; };
+  }, [lp.imagePath]);
+
+  return (
+    <div
+      className="link-card"
+      title={lp.url || ''}
+      onClick={() => lp.url && window.api.openExternal(lp.url)}
+    >
+      {img && <img className="lc-img" src={img} alt="" draggable={false} />}
+      {lp.title && <div className="lc-title">{lp.title}</div>}
+      {lp.summary && <div className="lc-summary">{lp.summary}</div>}
+      {(lp.site || lp.domain) && <div className="lc-site">{lp.site || lp.domain}</div>}
+    </div>
+  );
+}
 
 const URL_RE = /(https?:\/\/[^\s]+)/g;
 const EMOJI_ONLY = /^(?:\s*(?:\p{Extended_Pictographic}️?|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|[\u{1F1E6}-\u{1F1FF}]){1,3}\s*)$/u;
@@ -65,17 +96,7 @@ export default function Bubble({ msg, groupPos, isGroup, animate }) {
             <Attachment key={a.id} att={a} />
           ))}
           {showText && <span>{linkify(text)}</span>}
-          {lp && (
-            <div
-              className="link-card"
-              title={lp.url || ''}
-              onClick={() => lp.url && window.api.openExternal(lp.url)}
-            >
-              {lp.title && <div className="lc-title">{lp.title}</div>}
-              {lp.summary && <div className="lc-summary">{lp.summary}</div>}
-              {(lp.site || lp.domain) && <div className="lc-site">{lp.site || lp.domain}</div>}
-            </div>
-          )}
+          {lp && <LinkCard lp={lp} />}
 
           {msg.reactions.length > 0 && (
             <div className="reactions">

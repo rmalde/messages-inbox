@@ -1,6 +1,7 @@
 'use strict';
 
 const { execFile } = require('child_process');
+const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { decodeAttributedBody } = require('./attributedBody');
@@ -200,6 +201,7 @@ async function getMessages(chatId, limit = 1000) {
   // Attachments for these messages.
   const ids = rows.map((r) => r.id);
   let attachByMsg = {};
+  const linkImgByMsg = {};   // message id -> rich-link preview image path
   if (ids.length) {
     const att = await query(`
       SELECT maj.message_id AS mid, a.ROWID AS aid, a.filename AS filename,
@@ -209,11 +211,20 @@ async function getMessages(chatId, limit = 1000) {
       WHERE maj.message_id IN (${ids.join(',')});
     `);
     for (const a of att) {
-      // Skip iMessage rich-link / app-balloon payloads (e.g. a UUID named
-      // "*.pluginPayloadAttachment"). They aren't real files — the link itself
-      // lives in the message text — so showing them surfaces a junk hash.
       const fn = a.filename || a.tname || '';
-      if (/\.pluginPayloadAttachment$/i.test(fn)) continue;
+      // iMessage rich-link payloads ("<uuid>.pluginPayloadAttachment") aren't
+      // user files — big ones are the link's PREVIEW IMAGE (png/jpeg), tiny
+      // ones a favicon. Keep the path of a real image for the link card's
+      // hero; never list it as an attachment.
+      if (/\.pluginPayloadAttachment$/i.test(fn)) {
+        if (a.filename) {
+          const p = a.filename.replace(/^~/, os.homedir());
+          try {
+            if (!linkImgByMsg[a.mid] && fs.statSync(p).size > 40 * 1024) linkImgByMsg[a.mid] = p;
+          } catch { /* missing file */ }
+        }
+        continue;
+      }
       (attachByMsg[a.mid] = attachByMsg[a.mid] || []).push({
         id: a.aid,
         path: a.filename ? a.filename.replace(/^~/, os.homedir()) : null,
@@ -252,7 +263,10 @@ async function getMessages(chatId, limit = 1000) {
     // Rich URL preview (decoded locally from the message's balloon payload).
     if (r.payload_hex) {
       const lp = decodeLinkPreview(Buffer.from(r.payload_hex, 'hex'));
-      if (lp) msg.linkPreview = lp;
+      if (lp) {
+        if (linkImgByMsg[r.id]) lp.imagePath = linkImgByMsg[r.id];
+        msg.linkPreview = lp;
+      }
     }
     byGuid[r.guid] = msg;
     messages.push(msg);

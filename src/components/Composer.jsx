@@ -9,6 +9,11 @@ export default function Composer({ onSend, disabled, draft }) {
   const popRef = useRef(null);
   const dirty = useRef(false);
 
+  // Opening a conversation puts the caret in the field — you came here to type.
+  useEffect(() => {
+    if (taRef.current) taRef.current.focus({ preventScroll: true });
+  }, []);
+
   // Mirror the AI draft into the box as long as the user hasn't typed anything.
   // Gating on `dirty` (not emptiness) means a refreshed draft replaces a stale
   // one — and a stale draft gets cleared when it's dropped (draft -> null) —

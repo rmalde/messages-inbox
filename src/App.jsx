@@ -211,6 +211,12 @@ export default function App() {
   // which proved unreliable for these keys.
   useEffect(() => {
     const onKey = (e) => {
+      if (e.metaKey && !e.shiftKey && !e.altKey && !e.ctrlKey && e.code === 'KeyF') {
+        e.preventDefault();
+        const el = document.querySelector('.search input');
+        if (el) el.focus();
+        return;
+      }
       if (!e.metaKey || !e.shiftKey || e.altKey || e.ctrlKey) return;
       if (e.code === 'BracketRight') { e.preventDefault(); navStep(1); }
       else if (e.code === 'BracketLeft') { e.preventDefault(); navStep(-1); }

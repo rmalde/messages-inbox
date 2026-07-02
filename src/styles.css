@@ -63,6 +63,8 @@
 }
 
 * { box-sizing: border-box; }
+::selection { background: color-mix(in srgb, var(--blue) 30%, transparent); }
+input, textarea { caret-color: var(--blue); }
 html, body, #root { margin: 0; height: 100%; overflow: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
@@ -295,6 +297,7 @@ body {
 
 .messages {
   flex: 1; overflow-y: auto;
+  animation: paneFade 0.16s ease;
   padding: 92px 16px 76px;   /* room to scroll under the floating chrome */
   display: flex; flex-direction: column;
   scroll-behavior: smooth;
@@ -422,6 +425,7 @@ body {
   transition: filter 0.12s ease;
 }
 .link-card:hover { filter: brightness(1.05); }
+.lc-img { display: block; width: 100%; max-height: 158px; object-fit: cover; background: rgba(0, 0, 0, 0.08); }
 .bubble.mine:not(.media-only) .link-card { background: rgba(0, 0, 0, 0.22); }
 .bubble.media-only .link-card { margin: 0; }
 .lc-title { font-weight: 600; font-size: 13px; line-height: 1.28; padding: 10px 12px 0;
@@ -558,7 +562,7 @@ body {
   padding: 16px 18px; border-bottom: 1px solid var(--separator);
 }
 .prompt-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
-.prompt-title svg { color: #a877ff; }
+.prompt-title svg { color: var(--text-secondary); }
 .prompt-close {
   border: none; background: var(--hover); color: var(--text);
   width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 13px;
@@ -571,33 +575,33 @@ body {
 .edit-card { border: 1px solid var(--separator); border-radius: 12px; padding: 11px 12px; margin-bottom: 10px; }
 .edit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
 .edit-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.edit-tag { font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 6px; flex-shrink: 0; }
-.edit-tag.k-edit { color: #fff; background: #ff9f0a; }
-.edit-tag.k-same { color: #fff; background: #34c759; }
-.edit-tag.k-arch { color: #fff; background: #8e8e93; }
+.edit-tag { font-size: 10.5px; font-weight: 650; padding: 1.5px 8px; border-radius: 20px; flex-shrink: 0; }
+.edit-tag.k-edit { color: #ff9f0a; background: rgba(255, 159, 10, 0.16); }
+.edit-tag.k-same { color: #30d158; background: rgba(48, 209, 88, 0.16); }
+.edit-tag.k-arch { color: var(--text-secondary); background: var(--field); }
 .edit-row { display: flex; gap: 8px; font-size: 12.5px; line-height: 1.4; margin-top: 4px; }
 .edit-lbl { flex-shrink: 0; width: 42px; color: var(--text-tertiary); font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.03em; padding-top: 1px; }
 .edit-draft { color: var(--text-secondary); }
 .edit-sent { color: var(--text); }
 
 .prompt-status { margin: 12px 18px 0; padding: 8px 12px; border-radius: 9px; font-size: 12.5px; }
-.prompt-status.ok { background: rgba(120, 180, 120, 0.14); color: var(--text-secondary); }
+.prompt-status.ok { background: var(--field); color: var(--text-secondary); }
 .prompt-status.warn { background: rgba(255, 159, 10, 0.16); color: #d98a00; }
 @media (prefers-color-scheme: dark) { .prompt-status.warn { color: #ffb340; } }
 
 .prompt-list { overflow-y: auto; padding: 14px 18px 20px; }
 .prompt-empty { color: var(--text-secondary); padding: 30px; text-align: center; }
-.prompt-version { border-left: 2px solid rgba(168, 119, 255, 0.5); padding: 4px 0 18px 16px; margin-left: 6px; position: relative; }
+.prompt-version { border-left: 1.5px solid var(--separator); padding: 4px 0 18px 16px; margin-left: 6px; position: relative; }
 .prompt-version::before {
   content: ""; position: absolute; left: -6px; top: 6px; width: 10px; height: 10px;
-  border-radius: 50%; background: #a877ff;
+  border-radius: 50%; background: var(--text-tertiary);
 }
 .pv-head { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
-.pv-badge { font-size: 12px; font-weight: 700; color: #fff; background: #a877ff; border-radius: 6px; padding: 2px 8px; }
+.pv-badge { font-size: 11.5px; font-weight: 650; color: var(--text); background: var(--field); border-radius: 20px; padding: 2px 9px; }
 .pv-meta { font-size: 12px; color: var(--text-secondary); }
 .pv-date { font-size: 11.5px; color: var(--text-tertiary); margin-left: auto; }
 .pv-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin: 10px 0 5px; }
-.pv-reflection p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--text); background: rgba(168, 119, 255, 0.08); border-radius: 9px; padding: 9px 11px; }
+.pv-reflection p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text); background: var(--field); border-radius: 10px; padding: 10px 12px; }
 .pv-prompt {
   margin: 0; white-space: pre-wrap; word-break: break-word;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11.5px; line-height: 1.5;
@@ -638,6 +642,7 @@ body {
 @keyframes pop { 0% { transform: scale(0); } 72% { transform: scale(1.18); } 100% { transform: scale(1); } }
 @keyframes popUp { from { opacity: 0; transform: scale(0.92) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes paneFade { from { opacity: 0.35; } to { opacity: 1; } }
 
 .typing-dots { display: inline-flex; gap: 4px; padding: 4px 2px; }
 .typing-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--text-tertiary); animation: blink 1.3s infinite both; }

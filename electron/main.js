@@ -416,11 +416,15 @@ ipcMain.handle('attachment:data', async (_e, filePath) => {
     if (stat.size > 25 * 1024 * 1024) return null; // skip huge files
     const buf = fs.readFileSync(filePath);
     const ext = path.extname(filePath).toLowerCase();
+    // Sniff magic bytes first — rich-link payload files carry no meaningful
+    // extension, and the bytes are the truth anyway.
     const mime =
-      ext === '.png' ? 'image/png'
-      : ext === '.gif' ? 'image/gif'
+      buf[0] === 0x89 && buf[1] === 0x50 ? 'image/png'
+      : buf[0] === 0xff && buf[1] === 0xd8 ? 'image/jpeg'
+      : buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 ? 'image/gif'
+      : buf[0] === 0x00 && buf[1] === 0x00 && buf[2] === 0x01 && buf[3] === 0x00 ? 'image/x-icon'
+      : buf.length > 12 && buf.toString('latin1', 8, 12) === 'WEBP' ? 'image/webp'
       : ext === '.heic' ? 'image/heic'
-      : ext === '.webp' ? 'image/webp'
       : ext === '.mov' ? 'video/quicktime'
       : ext === '.mp4' ? 'video/mp4'
       : 'image/jpeg';
