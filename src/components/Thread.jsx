@@ -15,6 +15,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
   const atBottom = useRef(true);        // was the user pinned to the bottom?
   const seenIds = useRef(new Set());    // message ids already rendered for this chat
   const [showJump, setShowJump] = useState(false); // scroll-to-bottom chip
+  const [atTop, setAtTop] = useState(false);       // lighten the veil at the very top
 
   // Reset the "seen" set when switching conversations.
   useEffect(() => { seenIds.current = new Set(); }, [convo.guid]);
@@ -32,6 +33,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
     atBottom.current = dist < 120;
     setShowJump(dist > 400);
+    setAtTop(el.scrollTop < 8);
   }
 
   function jumpToBottom() {
@@ -75,7 +77,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
 
   return (
     <div className="main">
-      <div className="thread-header">
+      <div className={'thread-header' + (atTop ? ' at-top' : '')}>
         <div className="header-center">
           <Avatar name={convo.name} handle={convo.isGroup ? undefined : convo.identifier} isGroup={convo.isGroup} participants={convo.participants} />
           <span className="title">{sidebarTitle(convo.name, convo.isGroup)}<span className="chev">›</span></span>
@@ -84,7 +86,18 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
           {!convo.isGroup && convo.identifier && (
             <button
               className="icon-btn"
-              title="FaceTime"
+              title="FaceTime Audio"
+              onClick={() => window.api.openExternal('facetime-audio://' + encodeURIComponent(convo.identifier))}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6.6 3.8 L9 3.2 a1.2 1.2 0 0 1 1.35 .7 L11.5 6.7 a1.2 1.2 0 0 1 -.35 1.4 L9.6 9.4 a13.8 13.8 0 0 0 5 5 L16 12.85 a1.2 1.2 0 0 1 1.4 -.35 l2.8 1.15 a1.2 1.2 0 0 1 .7 1.35 L20.2 17.4 a2 2 0 0 1 -2 1.6 C10.6 19 5 13.4 5 5.8 a2 2 0 0 1 1.6 -2 Z" />
+              </svg>
+            </button>
+          )}
+          {!convo.isGroup && convo.identifier && (
+            <button
+              className="icon-btn"
+              title="FaceTime Video"
               onClick={() => window.api.openExternal('facetime://' + encodeURIComponent(convo.identifier))}
             >
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

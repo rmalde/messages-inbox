@@ -46,6 +46,9 @@
 
   --glass-blur: blur(40px) saturate(180%);
   --glass-edge: rgba(0, 0, 0, 0.08);
+
+  --dur-fast: 0.12s;
+  --dur-med: 0.16s;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -206,6 +209,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 .convo {
   display: flex; gap: 12px; align-items: center;
   padding: 12px 10px 12px 24px;
+  min-height: 69px;
   border-radius: var(--rad-l);
   cursor: default; position: relative;
   transition: background 0.1s ease;
@@ -301,6 +305,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 /* Progressive blur veil: strong at the top, dissolving to nothing. */
 .thread-header::before {
   content: ""; position: absolute; inset: 0 0 -26px 0; z-index: -1;
+  transition: opacity 0.25s ease;
   -webkit-backdrop-filter: blur(26px) saturate(180%);
   backdrop-filter: blur(26px) saturate(180%);
   -webkit-mask-image: linear-gradient(to bottom, black 68%, transparent);
@@ -310,6 +315,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
     color-mix(in srgb, var(--bg) 55%, transparent) 68%,
     var(--bg-t));
 }
+.thread-header.at-top::before { opacity: 0.55; }
 .header-center { display: flex; flex-direction: column; align-items: center; gap: 3px; max-width: 60%; }
 .thread-header .avatar { width: 40px; height: 40px; font-size: 15px; }
 .thread-header .avatar.group .g-tile.back,
@@ -320,7 +326,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   color: var(--text);
 }
 .header-center .title .chev { color: var(--text-tertiary); font-size: 12px; }
-.thread-actions { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; -webkit-app-region: no-drag; }
+.thread-actions { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; gap: 4px; -webkit-app-region: no-drag; }
 .thread-actions.left { left: 12px; right: auto; }
 .icon-btn {
   -webkit-app-region: no-drag;
@@ -341,6 +347,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   overscroll-behavior: contain;
 }
 
+.day-sep:first-child { margin-top: 0; }
 .day-sep {
   align-self: center; font-size: 11px; color: var(--text-tertiary);
   margin: 20px 0 8px; font-weight: 400; font-variant-numeric: tabular-nums;
@@ -374,7 +381,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 .bubble.theirs { background: var(--incoming); color: var(--incoming-text); }
 .bubble.pending { animation: pendingPulse 1.6s ease-in-out infinite; }
 @keyframes pendingPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.75; } }
-.bubble a { color: inherit; text-decoration: underline; cursor: pointer; }
+.bubble a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 45%, transparent); cursor: pointer; }
 .bubble.emoji-only { background: transparent !important; font-size: 46px; padding: 2px 4px; line-height: 1.08; }
 /* image-only / card-only messages: the media IS the bubble */
 .bubble.media-only { background: transparent !important; padding: 0; color: var(--text); }
@@ -511,6 +518,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 }
 .composer textarea {
   display: block; width: 100%;
+  transition: height var(--dur-fast) ease;
   border: none; outline: none; resize: none; background: transparent;
   color: var(--text); font: inherit; font-size: 14px; line-height: 1.35;
   max-height: 140px; padding: 6px 36px 6px 13px; user-select: text;
@@ -586,6 +594,10 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 
 /* ===================== AI drafting ===================== */
 .draft-chip { color: var(--blue); font-weight: 600; }
+.draft-chip::before { content: "✦ "; font-size: 0.85em; }
+
+.ai-btn.reflecting svg { animation: aiPulse 1.4s ease-in-out infinite; }
+@keyframes aiPulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
 
 /* Prompt-evolution overlay */
 .overlay {
@@ -598,10 +610,13 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 .prompt-panel {
   width: min(760px, 92vw); max-height: 86vh;
   display: flex; flex-direction: column;
-  background: var(--panel); color: var(--text);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  color: var(--text);
   border: 0.5px solid var(--glass-edge);
   border-radius: 20px; overflow: hidden;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  animation: popUp 0.2s cubic-bezier(0.2, 1, 0.3, 1);
 }
 .prompt-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -696,3 +711,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 .typing-dots span:nth-child(2) { animation-delay: 0.18s; }
 .typing-dots span:nth-child(3) { animation-delay: 0.36s; }
 @keyframes blink { 0%, 75%, 100% { opacity: 0.35; transform: translateY(0); } 38% { opacity: 1; transform: translateY(-3px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

@@ -23,6 +23,13 @@ export default function Composer({ onSend, disabled, draft }) {
     if (dirty.current) return;
     setText(draft || '');
     setFromDraft(!!draft);
+    // Caret lands at the end of the prefilled draft, ready to continue.
+    if (draft && taRef.current) {
+      requestAnimationFrame(() => {
+        const ta = taRef.current;
+        if (ta) ta.setSelectionRange(ta.value.length, ta.value.length);
+      });
+    }
   }, [draft]);
 
   // Auto-grow textarea.
@@ -57,7 +64,7 @@ export default function Composer({ onSend, disabled, draft }) {
   }
 
   function onKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (!e.shiftKey || e.metaKey)) {
       e.preventDefault();
       submit();
     }
@@ -97,7 +104,7 @@ export default function Composer({ onSend, disabled, draft }) {
           onChange={onChange}
           onKeyDown={onKeyDown}
         />
-        <button className="send-btn" disabled={!text.trim() || disabled} onClick={submit} title="Send">
+        <button className="send-btn" disabled={!text.trim() || disabled} onClick={submit} title="Send (Return)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="19" x2="12" y2="5" />
             <polyline points="6 11 12 5 18 11" />

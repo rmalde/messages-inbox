@@ -17,6 +17,16 @@ export default function App() {
   const [toast, setToast] = useState(null); // {text, onUndo}
   const [draft, setDraft] = useState(null); // AI draft text for the open chat
   const [showPrompts, setShowPrompts] = useState(false); // prompt-history overlay
+  const [aiBusy, setAiBusy] = useState(false); // a reflection is running
+
+  // Light poll so the sidebar sparkle can breathe while the AI reflects.
+  useEffect(() => {
+    let live = true;
+    const check = () => window.api.aiStatus().then((s) => { if (live) setAiBusy(!!(s && s.reflecting)); }).catch(() => {});
+    check();
+    const id = setInterval(check, 12000);
+    return () => { live = false; clearInterval(id); };
+  }, []);
 
   const selectedRef = useRef(null);
   const toastTimer = useRef(null);
@@ -283,6 +293,7 @@ export default function App() {
         onArchive={archive}
         onUnarchive={unarchive}
         onOpenPrompts={() => setShowPrompts(true)}
+        aiBusy={aiBusy}
         counts={counts}
       />
       {selected ? (

@@ -5,8 +5,9 @@ import { listTime, sidebarTitle } from '../lib/format';
 const PAGE = 50; // rows rendered per chunk — keeps huge archives from mounting at once
 
 function preview(c) {
-  let t = c.lastText || '';
-  if (!t && c.lastHasAttachment) t = '📷 Attachment';
+  // Collapse newlines/whitespace runs — previews are a single visual stream.
+  let t = (c.lastText || '').replace(/\s+/g, ' ').trim();
+  if (!t && c.lastHasAttachment) t = 'Photo';
   if (c.lastFromMe && t) t = 'You: ' + t;
   return t;
 }
@@ -28,7 +29,7 @@ function DraftChip() {
 
 export default function Sidebar({
   conversations, filter, setFilter, search, setSearch,
-  selectedGuid, onSelect, onArchive, onUnarchive, onOpenPrompts, counts,
+  selectedGuid, onSelect, onArchive, onUnarchive, onOpenPrompts, counts, aiBusy,
 }) {
   // Incrementally reveal rows as the user scrolls so an archive of 1000+
   // conversations doesn't mount (and fire a contact-photo lookup) all at once.
@@ -65,7 +66,7 @@ export default function Sidebar({
     <div className="sidebar">
       <div className="sidebar-bar">
         <span className="spacer" />
-        <button className="bar-btn ai-btn" title="AI style & prompt evolution" onClick={onOpenPrompts}>
+        <button className={'bar-btn ai-btn' + (aiBusy ? ' reflecting' : '')} title={aiBusy ? 'AI is updating its style guide…' : 'AI style & prompt evolution'} onClick={onOpenPrompts}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 3.2 L13.9 9 a1 1 0 0 0 .64 .64 L20.3 11.5 a0.55 0.55 0 0 1 0 1 L14.54 14.36 a1 1 0 0 0 -.64 .64 L12 20.8 a0.55 0.55 0 0 1 -1 0 L9.46 15 a1 1 0 0 0 -.64 -.64 L3.7 12.5 a0.55 0.55 0 0 1 0 -1 L9.46 9.64 a1 1 0 0 0 .64 -.64 L11 3.2 a0.55 0.55 0 0 1 1 0 Z" transform="translate(-1.2 1.2) scale(0.92)" />
             <path d="M18.6 3.2 l.75 2.06 a0.7 0.7 0 0 0 .42 .42 L21.8 6.4 a0.36 0.36 0 0 1 0 .68 l-2.03 .72 a0.7 0.7 0 0 0 -.42 .42 L18.6 10.3 a0.36 0.36 0 0 1 -.68 0 l-.72 -2.08 a0.7 0.7 0 0 0 -.42 -.42 L14.7 7.08 a0.36 0.36 0 0 1 0 -.68 l2.08 -.72 a0.7 0.7 0 0 0 .42 -.42 L17.92 3.2 a0.36 0.36 0 0 1 .68 0 Z" />
