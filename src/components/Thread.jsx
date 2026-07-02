@@ -125,7 +125,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
         </div>
       </div>
 
-      <div className="messages" key={convo.guid} ref={scrollRef} onScroll={onScroll}>
+      <div className="messages" ref={scrollRef} onScroll={onScroll}>
         {messages.map((m, i) => {
           const prev = messages[i - 1];
           const next = messages[i + 1];

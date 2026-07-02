@@ -13,7 +13,8 @@
   --blue: #007aff;
   --green: #34c759;
 
-  --bg: #ffffff;
+  --bg: rgba(255, 255, 255, 0.93);
+  --bg-solid: #ffffff;
   --bg-t: rgba(255, 255, 255, 0);
   --sidebar-bg: rgba(246, 246, 248, 0.62);
   --incoming: #e9e9eb;
@@ -56,7 +57,8 @@
     --blue: #0a84ff;
     --green: #30d158;
 
-    --bg: #1e1e20;
+    --bg: rgba(30, 30, 32, 0.93);
+    --bg-solid: #1e1e20;
     --bg-t: rgba(30, 30, 32, 0);
     --sidebar-bg: rgba(22, 22, 24, 0.5);
     --incoming: #3a3a3c;
@@ -88,7 +90,7 @@ html, body, #root { margin: 0; height: 100%; overflow: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   color: var(--text);
-  background: var(--bg);
+  background: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 14px;
@@ -124,7 +126,7 @@ body.win-blurred .convo.selected .convo-time { color: var(--text-secondary); }
 body.win-blurred .unread-dot { background: var(--text-tertiary); }
 body.win-blurred .segmented button .count { background: var(--text-tertiary); }
 body.win-blurred .convo.selected .unread-dot { background: var(--text-tertiary); }
-body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px var(--bg); }
+body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px var(--bg-solid); }
 
 /* ===================== Sidebar ===================== */
 .sidebar {
@@ -166,8 +168,8 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   display: flex; align-items: center; gap: 6px;
   background: var(--field);
   border-radius: var(--rad-m);
-  padding: 4px 8px;
-  margin: 2px 12px 8px;
+  padding: 7px 10px;
+  margin: 2px 14px 10px;
 }
 .search input {
   border: none; background: transparent; outline: none;
@@ -181,14 +183,14 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   -webkit-app-region: no-drag;
   display: flex; gap: 2px;
   background: var(--field);
-  border-radius: var(--rad-m); padding: 2px;
-  margin: 0 12px 4px;
+  border-radius: 9px; padding: 3px;
+  margin: 0 14px 8px;
 }
 .segmented button {
   flex: 1; border: none; background: transparent;
   color: var(--text-secondary);
-  font-size: var(--t-caption); font-weight: 590;
-  padding: 3px 8px; border-radius: var(--rad-s); cursor: default;
+  font-size: 12px; font-weight: 600;
+  padding: 5px 10px; border-radius: 7px; cursor: default;
   transition: all var(--dur-med) ease;
   display: flex; align-items: center; justify-content: center; gap: 5px;
 }
@@ -199,8 +201,10 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 }
 .segmented button.active {
   background: var(--panel); color: var(--text);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+  border: 0.5px solid var(--glass-edge);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
+.segmented button { border: 0.5px solid transparent; }
 
 .convo-list { flex: 1; overflow-y: auto; padding: 4px 10px 14px; overscroll-behavior: contain; }
 
@@ -246,7 +250,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   position: absolute; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   color: rgba(255, 255, 255, 0.95); font-weight: 500; letter-spacing: 0;
-  box-shadow: 0 0 0 2px var(--bg);
+  box-shadow: 0 0 0 2px var(--bg-solid);
   background-size: cover; background-position: center;
 }
 .avatar.group .g-tile.back  { width: 66%; height: 66%; top: 0; left: 0; font-size: 10px; }
@@ -302,16 +306,19 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 }
 /* Progressive blur veil: strong at the top, dissolving to nothing. */
 .thread-header::before {
-  content: ""; position: absolute; inset: 0 0 -26px 0; z-index: -1;
+  content: ""; position: absolute; inset: 0 0 -44px 0; z-index: -1;
   transition: opacity 0.25s ease;
   -webkit-backdrop-filter: blur(26px) saturate(180%);
   backdrop-filter: blur(26px) saturate(180%);
-  -webkit-mask-image: linear-gradient(to bottom, black 68%, transparent);
-  mask-image: linear-gradient(to bottom, black 68%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom,
+    black 40%, rgba(0,0,0,0.85) 58%, rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.25) 85%, transparent 98%);
+  mask-image: linear-gradient(to bottom,
+    black 40%, rgba(0,0,0,0.85) 58%, rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.25) 85%, transparent 98%);
   background: linear-gradient(to bottom,
-    color-mix(in srgb, var(--bg) 86%, transparent) 40%,
-    color-mix(in srgb, var(--bg) 55%, transparent) 68%,
-    var(--bg-t));
+    color-mix(in srgb, var(--bg) 82%, transparent) 30%,
+    color-mix(in srgb, var(--bg) 48%, transparent) 60%,
+    color-mix(in srgb, var(--bg) 18%, transparent) 82%,
+    var(--bg-t) 98%);
 }
 .thread-header.at-top::before { opacity: 0.55; }
 .header-center { display: flex; flex-direction: column; align-items: center; gap: 3px; max-width: 60%; }
@@ -338,7 +345,6 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 
 .messages {
   flex: 1; overflow-y: auto;
-  animation: paneFade 0.16s ease;
   padding: 92px 16px 76px;   /* room to scroll under the floating chrome */
   display: flex; flex-direction: column;
   scroll-behavior: smooth;
@@ -427,7 +433,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   background: var(--card); border-radius: 50%;
   width: 29px; height: 29px; margin-left: -9px;
   display: flex; align-items: center; justify-content: center; font-size: 14px;
-  box-shadow: 0 0 0 2px var(--bg), 0 1px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 2px var(--bg-solid), 0 1px 4px rgba(0, 0, 0, 0.25);
   animation: pop 0.32s cubic-bezier(0.2, 1.5, 0.4, 1) both;
 }
 .msg-row.theirs .reaction { margin-left: 0; margin-right: -9px; }
@@ -495,15 +501,18 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 }
 /* Rising progressive blur under the composer. */
 .composer::before {
-  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  content: ""; position: absolute; inset: -34px 0 0 0; z-index: 0; pointer-events: none;
   -webkit-backdrop-filter: blur(26px) saturate(180%);
   backdrop-filter: blur(26px) saturate(180%);
-  -webkit-mask-image: linear-gradient(to top, black 55%, transparent);
-  mask-image: linear-gradient(to top, black 55%, transparent);
+  -webkit-mask-image: linear-gradient(to top,
+    black 40%, rgba(0,0,0,0.85) 58%, rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.25) 85%, transparent 98%);
+  mask-image: linear-gradient(to top,
+    black 40%, rgba(0,0,0,0.85) 58%, rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.25) 85%, transparent 98%);
   background: linear-gradient(to top,
-    color-mix(in srgb, var(--bg) 82%, transparent),
-    color-mix(in srgb, var(--bg) 45%, transparent) 55%,
-    var(--bg-t));
+    color-mix(in srgb, var(--bg) 82%, transparent) 30%,
+    color-mix(in srgb, var(--bg) 48%, transparent) 60%,
+    color-mix(in srgb, var(--bg) 18%, transparent) 82%,
+    var(--bg-t) 98%);
 }
 .composer > * { position: relative; z-index: 1; }
 
@@ -592,7 +601,6 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 
 /* ===================== AI drafting ===================== */
 .draft-chip { color: var(--blue); font-weight: 600; }
-.draft-chip::before { content: "✦ "; font-size: 0.85em; }
 
 .ai-btn.reflecting svg { animation: aiPulse 1.4s ease-in-out infinite; }
 @keyframes aiPulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
@@ -702,7 +710,6 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 @keyframes pop { 0% { transform: scale(0); } 72% { transform: scale(1.18); } 100% { transform: scale(1); } }
 @keyframes popUp { from { opacity: 0; transform: scale(0.92) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes paneFade { from { opacity: 0.35; } to { opacity: 1; } }
 
 
 @media (prefers-reduced-motion: reduce) {

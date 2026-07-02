@@ -72,6 +72,12 @@ export default function Sidebar({
             <path d="M18.6 3.2 l.75 2.06 a0.7 0.7 0 0 0 .42 .42 L21.8 6.4 a0.36 0.36 0 0 1 0 .68 l-2.03 .72 a0.7 0.7 0 0 0 -.42 .42 L18.6 10.3 a0.36 0.36 0 0 1 -.68 0 l-.72 -2.08 a0.7 0.7 0 0 0 -.42 -.42 L14.7 7.08 a0.36 0.36 0 0 1 0 -.68 l2.08 -.72 a0.7 0.7 0 0 0 .42 -.42 L17.92 3.2 a0.36 0.36 0 0 1 .68 0 Z" />
           </svg>
         </button>
+        <button className="bar-btn" title="New Message (opens Messages)" onClick={() => window.api.openExternal('imessage://')}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15.2 5.2 H6.4 A2.4 2.4 0 0 0 4 7.6 v10 A2.4 2.4 0 0 0 6.4 20 h10 a2.4 2.4 0 0 0 2.4 -2.4 V8.8" />
+            <path d="M17.8 3.4 a1.9 1.9 0 0 1 2.7 2.7 L12 14.6 l-3.6 .9 .9 -3.6 Z" />
+          </svg>
+        </button>
       </div>
 
       <div className="search">

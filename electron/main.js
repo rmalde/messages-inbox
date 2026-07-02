@@ -32,8 +32,9 @@ function createWindow() {
     minWidth: 720,
     minHeight: 500,
     titleBarStyle: 'hiddenInset',
-    vibrancy: 'sidebar',
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff',
+    vibrancy: 'under-window',
+    visualEffectState: 'followWindow',
+    backgroundColor: '#00000000',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -171,7 +172,10 @@ ipcMain.handle('access:openSettings', async () => {
 });
 
 ipcMain.handle('open:external', async (_e, url) => {
-  if (typeof url === 'string' && /^https?:\/\//i.test(url)) await shell.openExternal(url);
+  // Web links plus the Apple communication schemes our UI offers.
+  if (typeof url === 'string' && /^(https?:\/\/|facetime(-audio)?:|imessage:)/i.test(url)) {
+    await shell.openExternal(url);
+  }
   return true;
 });
 
