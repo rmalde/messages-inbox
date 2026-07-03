@@ -282,6 +282,9 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Geometric drag region across the whole top bar; interactive controls
+          (buttons, search, tabs) carve themselves out via no-drag. */}
+      <div className="drag-bar" />
       <Sidebar
         conversations={visible}
         filter={filter}

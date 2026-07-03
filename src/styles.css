@@ -114,6 +114,10 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 
 .app { display: flex; height: 100vh; }
+.drag-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 78px;
+  z-index: 60; -webkit-app-region: drag; pointer-events: none;
+}
 
 /* Inactive window: blue selection is an active-window privilege. */
 body.win-blurred .convo.selected { background: var(--field); }
