@@ -6,6 +6,17 @@ import PromptHistory from './components/PromptHistory';
 const CONVO_POLL = 4000;
 const MSG_POLL = 3000;
 
+// Deep-link into Messages.app for this conversation. 1:1s route straight to
+// the thread; for groups, composing to the same participant set lands in the
+// existing group chat.
+function messagesUrl(c) {
+  if (!c) return null;
+  if (!c.isGroup && c.identifier) return 'imessage://' + encodeURIComponent(c.identifier);
+  const people = (c.participants || []).filter(Boolean);
+  if (!people.length) return 'imessage://';
+  return 'imessage://open?addresses=' + people.map(encodeURIComponent).join(',');
+}
+
 export default function App() {
   const [convos, setConvos] = useState([]);
   const [filter, setFilter] = useState('inbox');
@@ -125,11 +136,11 @@ export default function App() {
 
   const archive = useCallback(async (c) => {
     if (!c) return;
-    // Pick the conversation directly above the one being archived (fall back to
-    // the one below if it was at the top).
+    // Pick the next OLDER conversation (the one below); fall back to the one
+    // above only when archiving the bottom of the list.
     const cur = visibleRef.current;
     const idx = cur.findIndex((x) => x.guid === c.guid);
-    const neighborGuid = idx > 0 ? cur[idx - 1].guid : (cur[idx + 1] ? cur[idx + 1].guid : null);
+    const neighborGuid = cur[idx + 1] ? cur[idx + 1].guid : (idx > 0 ? cur[idx - 1].guid : null);
 
     await window.api.archive(c.guid);
     const list = await refreshConvos();
@@ -184,6 +195,10 @@ export default function App() {
         if (c) window.api.openChat(c.guid).then(refreshConvos);
       }),
       window.api.on('nav', (dir) => navStep(dir)),
+      window.api.on('open-in-messages', () => {
+        const url = messagesUrl(selectedRef.current);
+        if (url) window.api.openExternal(url);
+      }),
     ];
     return () => offs.forEach((off) => off && off());
   }, [archive, refreshConvos]);

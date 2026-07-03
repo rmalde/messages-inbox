@@ -93,8 +93,12 @@ function buildMenu() {
         },
         { type: 'separator' },
         {
-          label: 'Toggle Archived View',
+          label: 'Open in Messages',
           accelerator: 'CmdOrCtrl+Shift+A',
+          click: () => win && win.webContents.send('open-in-messages'),
+        },
+        {
+          label: 'Toggle Archived View',
           click: () => win && win.webContents.send('toggle-archived-view'),
         },
       ],

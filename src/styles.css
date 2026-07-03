@@ -529,7 +529,6 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 }
 .composer textarea {
   display: block; width: 100%;
-  transition: height var(--dur-fast) ease;
   border: none; outline: none; resize: none; background: transparent;
   color: var(--text); font: inherit; font-size: 14px; line-height: 1.35;
   max-height: 140px; padding: 6px 36px 6px 13px; user-select: text;

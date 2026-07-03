@@ -38,6 +38,9 @@ export default function Composer({ onSend, disabled, draft }) {
     if (!ta) return;
     ta.style.height = 'auto';
     ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+    // Tell the thread the bar changed size so it can keep clear air under the
+    // last message (ResizeObserver alone can be starved in occluded windows).
+    window.dispatchEvent(new CustomEvent('composer-resize'));
   }, [text]);
 
   useEffect(() => {

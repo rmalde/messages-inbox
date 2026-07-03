@@ -4,6 +4,13 @@ import Bubble from './Bubble';
 import Composer from './Composer';
 import { daySeparator, shouldSeparate, sidebarTitle } from '../lib/format';
 
+function messagesUrl(c) {
+  if (!c.isGroup && c.identifier) return 'imessage://' + encodeURIComponent(c.identifier);
+  const people = (c.participants || []).filter(Boolean);
+  if (!people.length) return 'imessage://';
+  return 'imessage://open?addresses=' + people.map(encodeURIComponent).join(',');
+}
+
 function sameRun(a, b) {
   return a && b && a.fromMe === b.fromMe && a.sender === b.sender && !shouldSeparate(a.date, b.date);
 }
@@ -71,6 +78,27 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
     lastId.current = last.id;
   }, [messages, convo.guid]);
 
+  // Keep clear air between the last message and the (floating) composer: as a
+  // multiline draft grows the bar, grow the scroller's bottom padding to match
+  // and stay pinned if we were at the bottom.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const comp = el && el.parentElement.querySelector('.composer');
+    if (!el || !comp) return undefined;
+    const sync = () => {
+      // Measure BEFORE the padding change: if the user was reading near the
+      // bottom, keep the last message pinned above the taller bar.
+      const distBefore = el.scrollHeight - el.scrollTop - el.clientHeight;
+      el.style.paddingBottom = (comp.offsetHeight + 14) + 'px';
+      if (atBottom.current || distBefore < 260) el.scrollTop = el.scrollHeight;
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(comp);
+    window.addEventListener('composer-resize', sync);
+    return () => { ro.disconnect(); window.removeEventListener('composer-resize', sync); };
+  }, [convo.guid]);
+
   // Only animate bubbles that arrive after the conversation is already open,
   // so switching chats doesn't trigger a flurry of entrance animations.
   const justOpened = scrolledGuid.current !== convo.guid;
@@ -106,6 +134,15 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
               </svg>
             </button>
           )}
+          <button
+            className="icon-btn"
+            title="Open in Messages (⌘⇧A)"
+            onClick={() => window.api.openExternal(messagesUrl(convo))}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 4.2 c-4.75 0 -8.4 3 -8.4 6.9 c0 2 1 3.75 2.55 5 c-.2 1 -.7 1.9 -1.4 2.65 c-.22 .23 -.05 .62 .27 .58 c1.55 -.18 2.9 -.75 4 -1.5 c.93 .27 1.93 .42 2.98 .42 c4.75 0 8.4 -3 8.4 -6.85 s-3.65 -6.9 -8.4 -6.9 Z" />
+            </svg>
+          </button>
           {convo.archived ? (
             <button className="icon-btn" onClick={() => onUnarchive(convo)} title="Move to Inbox">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

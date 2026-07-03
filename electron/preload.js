@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('api', {
       'mark-read-current',
       'nav',
       'toggle-archived-view',
+      'open-in-messages',
       'theme-changed',
       'ai-changed',
     ];
