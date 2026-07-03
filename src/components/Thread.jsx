@@ -23,6 +23,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
   // new ones animate on the next poll (not the same last bubble every tick).
   useEffect(() => {
     for (const m of messages) seenIds.current.add(m.id);
+    if (window.__lgMark) window.__lgMark();
   }, [messages]);
 
   // Track whether the user is parked at the bottom *before* a new message lands,
@@ -34,6 +35,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
     atBottom.current = dist < 120;
     setShowJump(dist > 400);
     setAtTop(el.scrollTop < 8);
+    if (window.__lgMark) window.__lgMark();
   }
 
   function jumpToBottom() {

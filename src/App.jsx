@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Sidebar from './components/Sidebar';
 import Thread from './components/Thread';
 import PromptHistory from './components/PromptHistory';
+import { mountGlass, unmountGlass } from './lib/glass';
 
 const CONVO_POLL = 4000;
 const MSG_POLL = 3000;
@@ -37,6 +38,15 @@ export default function App() {
     () => convos.find((c) => c.guid === selectedGuid) || null,
     [convos, selectedGuid]
   );
+
+  // Liquid-glass material mounts once a conversation (header + composer) exists.
+  useEffect(() => {
+    if (selected) {
+      const t = setTimeout(mountGlass, 250); // let the thread render first
+      return () => clearTimeout(t);
+    }
+    unmountGlass();
+  }, [!!selected]);
 
   const refreshConvos = useCallback(async () => {
     const res = await window.api.listConversations();

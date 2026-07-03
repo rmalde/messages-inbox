@@ -497,6 +497,19 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   border-radius: var(--rad-m);
 }
 
+/* When the WebGL liquid-glass material is live, the CSS veils step aside and
+   panel content stacks above the injected glass canvases. */
+body.lg-on .thread-header::before,
+body.lg-on .composer::before { display: none; }
+/* The library rasterizes root CHILDREN — the scroller must carry the surface
+   color itself or captures composite over white. */
+body.lg-on .messages { background: var(--bg-solid); }
+body.lg-on .thread-header > canvas,
+body.lg-on .composer > canvas { z-index: 0 !important; }
+body.lg-on .header-center,
+body.lg-on .thread-actions { position: relative; z-index: 1; }
+body.lg-on .thread-actions { position: absolute; }
+
 /* ===================== Composer (floating) ===================== */
 .composer {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 20;

@@ -24,6 +24,7 @@
     "wait-on": "^8.0.1"
   },
   "dependencies": {
+    "@ybouane/liquidglass": "^1.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -41,7 +42,12 @@
     ],
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
       ],
       "category": "public.app-category.social-networking",
       "icon": "build/icon.icns",
@@ -58,8 +64,16 @@
     "dmg": {
       "title": "Messages Inbox",
       "contents": [
-        { "x": 130, "y": 220 },
-        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "npmRebuild": false
