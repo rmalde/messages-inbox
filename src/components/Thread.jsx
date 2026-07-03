@@ -108,7 +108,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
       <div className={'thread-header' + (atTop ? ' at-top' : '')}>
         <div className="header-center">
           <Avatar name={convo.name} handle={convo.isGroup ? undefined : convo.identifier} isGroup={convo.isGroup} participants={convo.participants} />
-          <span className="title">{sidebarTitle(convo.name, convo.isGroup)}<span className="chev">›</span></span>
+          <span className="title">{convo.isGroup ? sidebarTitle(convo.name, true) : convo.name}<span className="chev">›</span></span>
         </div>
         <div className="thread-actions">
           {!convo.isGroup && convo.identifier && (
