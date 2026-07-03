@@ -25,9 +25,10 @@ class AiStore {
       this.prompts = { versions: [{ version: 0, createdAt: Date.now(), reflection: null, systemPrompt: V0_PROMPT, sampleCount: 0 }] };
       writeJson(this.promptsFile, this.prompts);
     }
-    this.drafts = readJson(this.draftsFile, { byGuid: {}, skipByGuid: {} });
-    if (!this.drafts.byGuid) this.drafts = { byGuid: {}, skipByGuid: {} };
+    this.drafts = readJson(this.draftsFile, { byGuid: {}, skipByGuid: {}, urgentByGuid: {} });
+    if (!this.drafts.byGuid) this.drafts = { byGuid: {}, skipByGuid: {}, urgentByGuid: {} };
     if (!this.drafts.skipByGuid) this.drafts.skipByGuid = {};
+    if (!this.drafts.urgentByGuid) this.drafts.urgentByGuid = {};
     this.learning = readJson(this.learningFile, { pending: [], recent: [], totalSamples: 0 });
     if (!this.learning.pending) this.learning = { pending: [], recent: [], totalSamples: 0 };
     if (!this.learning.recent) this.learning.recent = [];
@@ -78,6 +79,21 @@ class AiStore {
   clearSkip(guid) {
     if (this.drafts.skipByGuid[guid]) {
       delete this.drafts.skipByGuid[guid];
+      writeJson(this.draftsFile, this.drafts);
+    }
+  }
+
+  // ---- time-sensitive triage ----
+  // A classification VERDICT (urgent or not) for the incoming message dated
+  // `forDate` — remembering negatives too, so each message is judged once.
+  getUrgent(guid) { return this.drafts.urgentByGuid[guid] || null; }
+  setUrgent(guid, forDate, urgent) {
+    this.drafts.urgentByGuid[guid] = { forDate, urgent, createdAt: Date.now() };
+    writeJson(this.draftsFile, this.drafts);
+  }
+  clearUrgent(guid) {
+    if (this.drafts.urgentByGuid[guid]) {
+      delete this.drafts.urgentByGuid[guid];
       writeJson(this.draftsFile, this.drafts);
     }
   }

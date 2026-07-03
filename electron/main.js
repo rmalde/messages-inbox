@@ -160,7 +160,15 @@ function diagnoseAccess() {
 ipcMain.handle('conversations:list', async () => {
   try {
     const convos = store.decorate(await db.getConversations());
-    if (aiStore) for (const c of convos) c.hasDraft = aiStore.hasDraft(c.guid);
+    if (aiStore) {
+      const now = Date.now();
+      for (const c of convos) {
+        c.hasDraft = aiStore.hasDraft(c.guid);
+        const u = aiStore.getUrgent(c.guid);
+        c.timeSensitive = !!(u && u.urgent && u.forDate === c.lastIncomingDate &&
+          !c.lastFromMe && now - u.forDate < URGENT_TTL_MS);
+      }
+    }
     return { ok: true, convos };
   } catch (e) {
     const diag = diagnoseAccess();
@@ -214,6 +222,7 @@ ipcMain.handle('chat:archive', async (_e, guid) => {
     aiStore.deleteDraft(guid);
     aiStore.clearSkip(guid);
   }
+  if (aiStore) aiStore.clearUrgent(guid);
   return true;
 });
 
@@ -261,6 +270,8 @@ const DRAFT_WINDOW_MS = 36 * 60 * 60 * 1000;
 const CONT_WINDOW_MS = 15 * 60 * 1000;
 const SWEEP_MS = 3000;          // how often we clear stale drafts (cheap, no API)
 const GEN_EVERY_MS = 9000;      // how often we run the (throttled) generation pass
+const URGENT_WINDOW_MS = 6 * 60 * 60 * 1000;   // classify messages this fresh
+const URGENT_TTL_MS = 12 * 60 * 60 * 1000;     // 'today' relevance expires
 
 // Runs every SWEEP_MS. Always does the cheap staleness sweep so a brand-new
 // message (from them, or from Ronak on another device) clears the now-outdated
@@ -288,6 +299,12 @@ async function aiTick() {
     const skip = aiStore.getSkip(c.guid);
     if (draft && draft.forDate !== c.lastDate) { aiStore.deleteDraft(c.guid); changed = true; }
     if (skip && skip.forDate !== c.lastDate) { aiStore.clearSkip(c.guid); }
+    // Time-sensitive verdicts die when superseded, answered, or simply old.
+    const u = aiStore.getUrgent(c.guid);
+    if (u && (u.forDate !== c.lastIncomingDate || c.lastFromMe || now - u.forDate > URGENT_TTL_MS)) {
+      aiStore.clearUrgent(c.guid);
+      if (u.urgent) changed = true;
+    }
   }
   if (changed && win) win.webContents.send('ai-changed');
 
@@ -322,8 +339,36 @@ async function aiTick() {
       if (budget-- <= 0) break;
       await generateDraftFor(c);
     }
+
+    // Time-sensitive triage: judge each fresh incoming message once (verdicts,
+    // including NO, are remembered per message). Tiny calls; never blocks the
+    // message from appearing — it just floats the chat up once labeled.
+    const needsTriage = convos.filter((c) => {
+      if (c.archived || c.lastFromMe) return false;
+      if (!c.lastIncomingDate || now - c.lastIncomingDate > URGENT_WINDOW_MS) return false;
+      const u = aiStore.getUrgent(c.guid);
+      return !(u && u.forDate === c.lastIncomingDate);
+    });
+    let triageBudget = 3;
+    for (const c of needsTriage) {
+      if (triageBudget-- <= 0) break;
+      await classifyUrgentFor(c);
+    }
   } finally {
     aiGenBusy = false;
+  }
+}
+
+async function classifyUrgentFor(c) {
+  try {
+    const messages = await db.getMessages(c.chatId, 20);
+    const res = await ai.classifyUrgent({ messages, isGroup: c.isGroup, name: c.name });
+    if (res.ok) {
+      aiStore.setUrgent(c.guid, c.lastIncomingDate, !!res.urgent);
+      if (res.urgent && win) win.webContents.send('ai-changed');
+    }
+  } catch (e) {
+    aiStatus.lastError = String((e && e.message) || e);
   }
 }
 

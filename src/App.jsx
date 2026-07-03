@@ -208,9 +208,15 @@ export default function App() {
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return convos
+    const list = convos
       .filter((c) => (filter === 'archived' ? c.archived : !c.archived))
       .filter((c) => !q || c.name.toLowerCase().includes(q) || (c.lastText || '').toLowerCase().includes(q));
+    // Time-sensitive conversations float to the top of the inbox (stable order
+    // within each group — this also keeps ⌘⇧]/[ cycling aligned with the list).
+    if (filter === 'inbox') {
+      return [...list.filter((c) => c.timeSensitive), ...list.filter((c) => !c.timeSensitive)];
+    }
+    return list;
   }, [convos, filter, search]);
 
   useEffect(() => { visibleRef.current = visible; }, [visible]);

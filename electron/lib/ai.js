@@ -139,6 +139,23 @@ Output ONLY my next message text, or exactly ${NO_REPLY} if no message from me i
   return res;
 }
 
+// Time-sensitive triage: is the newest incoming message urgent TODAY?
+async function classifyUrgent({ messages, isGroup, name }) {
+  const transcript = buildTranscript(messages.slice(-10), isGroup, name);
+  const now = new Date();
+  const system = `You triage incoming text messages for Ronak. Decide if the NEWEST incoming message is TIME-SENSITIVE — it loses value if not seen or answered today. Time-sensitive: same-day scheduling or logistics (a meeting/call/event today or tonight, "are you here?", "running late", "can you hop on now?"), a decision or deadline within hours, or anything happening today that needs his input. NOT time-sensitive: general questions, catch-ups, FYIs, links, congratulations, plans for other days, anything that can comfortably wait until tomorrow. Reply with exactly YES or NO.`;
+  const user = `Now: ${now.toLocaleString([], { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+
+----
+${transcript}
+----
+
+Is the newest incoming message time-sensitive today? YES or NO only.`;
+  const res = await callAnthropic({ model: DRAFT_MODEL, system, messages: [{ role: 'user', content: user }], max_tokens: 4 });
+  if (!res.ok) return res;
+  return { ok: true, urgent: /^\s*YES/i.test(res.text || '') };
+}
+
 // Reflection: given the current prompt and a batch of (draft -> what Ronak
 // actually sent) samples, propose an improved style prompt.
 async function reflect({ systemPrompt, samples }) {
@@ -192,4 +209,4 @@ Then the full updated style guide as raw text (no JSON, no code fences, no quoti
   return { ok: true, reflection: reflection || 'Updated the style guide.', systemPrompt: newPrompt };
 }
 
-module.exports = { hasKey, getApiKey, generateDraft, reflect, DRAFT_MODEL, REFLECT_MODEL };
+module.exports = { hasKey, getApiKey, generateDraft, classifyUrgent, reflect, DRAFT_MODEL, REFLECT_MODEL };
