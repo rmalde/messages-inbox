@@ -325,6 +325,13 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
     var(--bg-t) 98%);
 }
 .thread-header.at-top::before { opacity: 0.55; }
+/* Refraction band: bends the (already veiled) backdrop through the bar's
+   dissolve zone — the liquid edge of the pane. */
+.header-glass {
+  position: absolute; inset: 0 0 -28px 0; z-index: -1; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 38%, black 66%, black 84%, transparent);
+  mask-image: linear-gradient(to bottom, transparent 38%, black 66%, black 84%, transparent);
+}
 .header-center { display: flex; flex-direction: column; align-items: center; gap: 3px; max-width: 60%; }
 .thread-header .avatar { width: 40px; height: 40px; font-size: 15px; }
 .thread-header .avatar.group .g-tile.back,
@@ -496,19 +503,6 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   background: color-mix(in srgb, currentColor 8%, transparent);
   border-radius: var(--rad-m);
 }
-
-/* When the WebGL liquid-glass material is live, the CSS veils step aside and
-   panel content stacks above the injected glass canvases. */
-body.lg-on .thread-header::before,
-body.lg-on .composer::before { display: none; }
-/* The library rasterizes root CHILDREN — the scroller must carry the surface
-   color itself or captures composite over white. */
-body.lg-on .messages { background: var(--bg-solid); }
-body.lg-on .thread-header > canvas,
-body.lg-on .composer > canvas { z-index: 0 !important; }
-body.lg-on .header-center,
-body.lg-on .thread-actions { position: relative; z-index: 1; }
-body.lg-on .thread-actions { position: absolute; }
 
 /* ===================== Composer (floating) ===================== */
 .composer {

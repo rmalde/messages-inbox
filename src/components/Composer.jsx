@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { EMOJI_GROUPS } from '../lib/emoji';
+import { Glass } from '../lib/liquidGlass';
 
 export default function Composer({ onSend, disabled, draft }) {
   const [text, setText] = useState(draft || '');
@@ -94,7 +95,10 @@ export default function Composer({ onSend, disabled, draft }) {
           ))}
         </div>
       )}
-      <div className={'composer-input-wrap' + (fromDraft ? ' draft' : '')}>
+      <Glass
+        className={'composer-input-wrap' + (fromDraft ? ' draft' : '')}
+        glass={{ shape: { halfW: 0.42, halfH: 0.25, radius: 0.45 }, bezel: 0.12, curve: 0.9, minScale: 22, post: 'blur(2px) saturate(1.6)' }}
+      >
         <textarea
           ref={taRef}
           rows={1}
@@ -110,7 +114,7 @@ export default function Composer({ onSend, disabled, draft }) {
             <polyline points="6 11 12 5 18 11" />
           </svg>
         </button>
-      </div>
+      </Glass>
       <button
         className="emoji-btn"
         onClick={() => setShowEmoji((s) => !s)}

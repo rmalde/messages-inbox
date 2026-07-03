@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Sidebar from './components/Sidebar';
 import Thread from './components/Thread';
 import PromptHistory from './components/PromptHistory';
-import { mountGlass, unmountGlass } from './lib/glass';
+import { Glass } from './lib/liquidGlass';
 
 const CONVO_POLL = 4000;
 const MSG_POLL = 3000;
@@ -39,14 +39,6 @@ export default function App() {
     [convos, selectedGuid]
   );
 
-  // Liquid-glass material mounts once a conversation (header + composer) exists.
-  useEffect(() => {
-    if (selected) {
-      const t = setTimeout(mountGlass, 250); // let the thread render first
-      return () => clearTimeout(t);
-    }
-    unmountGlass();
-  }, [!!selected]);
 
   const refreshConvos = useCallback(async () => {
     const res = await window.api.listConversations();
@@ -331,12 +323,12 @@ export default function App() {
         </div>
       )}
       {toast && (
-        <div className="toast">
+        <Glass className="toast" glass={{ shape: { halfW: 0.36, halfH: 0.26, radius: 0.5 }, post: 'blur(3px) saturate(1.6)' }}>
           <span>{toast.text}</span>
           {toast.onUndo && (
             <button className="toast-undo" onClick={() => toast.onUndo()}>Undo</button>
           )}
-        </div>
+        </Glass>
       )}
       {showPrompts && <PromptHistory onClose={() => setShowPrompts(false)} />}
     </div>

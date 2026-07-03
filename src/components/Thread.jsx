@@ -3,6 +3,7 @@ import Avatar from './Avatar';
 import Bubble from './Bubble';
 import Composer from './Composer';
 import { daySeparator, shouldSeparate, sidebarTitle } from '../lib/format';
+import { Glass } from '../lib/liquidGlass';
 
 function sameRun(a, b) {
   return a && b && a.fromMe === b.fromMe && a.sender === b.sender && !shouldSeparate(a.date, b.date);
@@ -23,7 +24,6 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
   // new ones animate on the next poll (not the same last bubble every tick).
   useEffect(() => {
     for (const m of messages) seenIds.current.add(m.id);
-    if (window.__lgMark) window.__lgMark();
   }, [messages]);
 
   // Track whether the user is parked at the bottom *before* a new message lands,
@@ -35,7 +35,6 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
     atBottom.current = dist < 120;
     setShowJump(dist > 400);
     setAtTop(el.scrollTop < 8);
-    if (window.__lgMark) window.__lgMark();
   }
 
   function jumpToBottom() {
@@ -80,6 +79,11 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
   return (
     <div className="main">
       <div className={'thread-header' + (atTop ? ' at-top' : '')}>
+        <Glass
+          className="header-glass"
+          aria-hidden="true"
+          glass={{ shape: { halfW: 0.47, halfH: 0.34, radius: 0.25 }, bezel: 0.12, curve: 0.9, minScale: 26, post: '' }}
+        />
         <div className="header-center">
           <Avatar name={convo.name} handle={convo.isGroup ? undefined : convo.identifier} isGroup={convo.isGroup} participants={convo.participants} />
           <span className="title">{sidebarTitle(convo.name, convo.isGroup)}<span className="chev">›</span></span>
@@ -150,11 +154,17 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
       </div>
 
       {showJump && (
-        <button className="jump-btn" onClick={jumpToBottom} title="Jump to latest">
+        <Glass
+          as="button"
+          className="jump-btn"
+          glass={{ shape: { halfW: 0.28, halfH: 0.28, radius: 0.55 }, minScale: 30, post: 'blur(2px) saturate(1.7) brightness(1.04)' }}
+          onClick={jumpToBottom}
+          title="Jump to latest"
+        >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="5 9 12 16 19 9" />
           </svg>
-        </button>
+        </Glass>
       )}
 
       <Composer key={convo.guid} draft={draft} onSend={(t) => onSend(convo, t)} />
