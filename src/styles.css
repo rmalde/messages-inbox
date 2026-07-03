@@ -219,7 +219,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   text-transform: uppercase; color: var(--text-tertiary);
   padding: 8px 14px 4px;
 }
-.section-label.urgent { color: #ff9f0a; }
+
 
 /* Rows: no separators — Messages relies on spacing alone. */
 .convo {
