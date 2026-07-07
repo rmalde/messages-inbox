@@ -1,3 +1,10 @@
+
+
+https://github.com/user-attachments/assets/98284b56-b711-4832-a695-8cf65bb4ce90
+
+
+
+
 # Messages Inbox
 
 A local, private wrapper around macOS Messages that adds an **email-style inbox
