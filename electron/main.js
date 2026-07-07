@@ -165,8 +165,8 @@ ipcMain.handle('conversations:list', async () => {
       for (const c of convos) {
         c.hasDraft = aiStore.hasDraft(c.guid);
         const u = aiStore.getUrgent(c.guid);
-        c.timeSensitive = !!(u && u.urgent && u.forDate === c.lastIncomingDate &&
-          !c.lastFromMe && now - u.forDate < URGENT_TTL_MS);
+        const live = u && (u.expiresAt ? now < u.expiresAt : now - u.forDate < URGENT_TTL_MS);
+        c.timeSensitive = !!(u && u.urgent && live && u.forDate === c.lastIncomingDate && !c.lastFromMe);
       }
     }
     return { ok: true, convos };
@@ -202,6 +202,14 @@ ipcMain.handle('chat:open', async (_e, guid) => {
 
 ipcMain.handle('chat:archive', async (_e, guid) => {
   store.archive(guid, Date.now());
+  // Learning capture involves a sqlite round-trip — run it off the response
+  // path so archiving feels instant in the UI.
+  captureArchiveSignal(guid);
+  if (aiStore) aiStore.clearUrgent(guid);
+  return true;
+});
+
+async function captureArchiveSignal(guid) {
   const draft = aiStore && aiStore.getDraft(guid);
   const skip = aiStore && aiStore.getSkip(guid);
   if (draft || skip) {
@@ -222,9 +230,7 @@ ipcMain.handle('chat:archive', async (_e, guid) => {
     aiStore.deleteDraft(guid);
     aiStore.clearSkip(guid);
   }
-  if (aiStore) aiStore.clearUrgent(guid);
-  return true;
-});
+}
 
 ipcMain.handle('chat:unarchive', async (_e, guid) => {
   store.unarchive(guid);
@@ -299,9 +305,11 @@ async function aiTick() {
     const skip = aiStore.getSkip(c.guid);
     if (draft && draft.forDate !== c.lastDate) { aiStore.deleteDraft(c.guid); changed = true; }
     if (skip && skip.forDate !== c.lastDate) { aiStore.clearSkip(c.guid); }
-    // Time-sensitive verdicts die when superseded, answered, or simply old.
+    // Time-sensitive verdicts die when superseded, answered, or past their
+    // own model-chosen expiry (with the global TTL as a backstop).
     const u = aiStore.getUrgent(c.guid);
-    if (u && (u.forDate !== c.lastIncomingDate || c.lastFromMe || now - u.forDate > URGENT_TTL_MS)) {
+    const expired = u && u.urgent && (u.expiresAt ? now >= u.expiresAt : now - u.forDate > URGENT_TTL_MS);
+    if (u && (u.forDate !== c.lastIncomingDate || c.lastFromMe || expired)) {
       aiStore.clearUrgent(c.guid);
       if (u.urgent) changed = true;
     }
@@ -364,7 +372,9 @@ async function classifyUrgentFor(c) {
     const messages = await db.getMessages(c.chatId, 20);
     const res = await ai.classifyUrgent({ messages, isGroup: c.isGroup, name: c.name });
     if (res.ok) {
-      aiStore.setUrgent(c.guid, c.lastIncomingDate, !!res.urgent);
+      // The model decides how long this stays urgent; 0 hours = not urgent.
+      const expiresAt = res.urgent ? Date.now() + res.hours * 3600 * 1000 : 0;
+      aiStore.setUrgent(c.guid, c.lastIncomingDate, !!res.urgent, expiresAt);
       if (res.urgent && win) win.webContents.send('ai-changed');
     }
   } catch (e) {

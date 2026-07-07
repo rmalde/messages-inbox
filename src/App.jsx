@@ -43,6 +43,7 @@ export default function App() {
   const toastTimer = useRef(null);
   const optimisticRef = useRef([]); // pending sent messages, by guid
   const visibleRef = useRef([]); // latest rendered (filtered) conversation order
+  const msgCache = useRef(new Map()); // chatId -> last fetched messages (instant open)
 
   const selected = useMemo(
     () => convos.find((c) => c.guid === selectedGuid) || null,
@@ -60,15 +61,25 @@ export default function App() {
     return res.convos;
   }, []);
 
+  const cacheMessages = useCallback((chatId, msgs) => {
+    const cache = msgCache.current;
+    cache.delete(chatId);
+    cache.set(chatId, msgs);
+    if (cache.size > 12) cache.delete(cache.keys().next().value); // drop oldest
+  }, []);
+
   const refreshMessages = useCallback(async (chatId) => {
     if (!chatId) return;
     const msgs = await window.api.listMessages(chatId);
+    cacheMessages(chatId, msgs);
+    // Ignore a late response for a chat we've already navigated away from.
+    if (selectedRef.current && selectedRef.current.chatId !== chatId) return;
     // Drop optimistic bubbles that have now landed in the DB.
     optimisticRef.current = optimisticRef.current.filter(
       (o) => !msgs.some((m) => m.fromMe && m.text.trim() === o.text.trim() && m.date >= o.date - 4000)
     );
     setMessages([...msgs, ...optimisticRef.current]);
-  }, []);
+  }, [cacheMessages]);
 
   // Initial + interval polling for conversation list.
   useEffect(() => {
@@ -97,6 +108,21 @@ export default function App() {
     if (selected) refreshMessages(selected.chatId);
   }, [selected && selected.lastDate, refreshMessages]);
 
+  // Prefetch the conversation below the selection — it's where archiving
+  // lands, so its messages should already be in memory when we jump.
+  useEffect(() => {
+    if (!selectedGuid) return undefined;
+    const t = setTimeout(() => {
+      const cur = visibleRef.current;
+      const idx = cur.findIndex((x) => x.guid === selectedGuid);
+      const next = idx >= 0 ? (cur[idx + 1] || cur[idx - 1]) : null;
+      if (next && !msgCache.current.has(next.chatId)) {
+        window.api.listMessages(next.chatId).then((msgs) => cacheMessages(next.chatId, msgs)).catch(() => {});
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [selectedGuid, cacheMessages]);
+
   // Pull the AI draft for the open chat (re-fetches when a draft appears).
   useEffect(() => {
     if (!selectedGuid) { setDraft(null); return; }
@@ -120,7 +146,8 @@ export default function App() {
     // Already open — don't reload/reset scroll.
     if (selectedRef.current && selectedRef.current.guid === c.guid) return;
     optimisticRef.current = [];
-    setMessages([]);
+    // Show the cached thread instantly; the poll effect refreshes it right after.
+    setMessages(msgCache.current.get(c.chatId) || []);
     setSelectedGuid(c.guid);
     selectedRef.current = c;
     await window.api.openChat(c.guid);
@@ -142,13 +169,15 @@ export default function App() {
     const idx = cur.findIndex((x) => x.guid === c.guid);
     const neighborGuid = cur[idx + 1] ? cur[idx + 1].guid : (idx > 0 ? cur[idx - 1].guid : null);
 
-    await window.api.archive(c.guid);
-    const list = await refreshConvos();
+    // Optimistic: the row disappears and the selection jumps immediately; the
+    // store write and list reconciliation happen in the background.
+    const neighbor = neighborGuid ? cur.find((x) => x.guid === neighborGuid) : null;
+    setConvos((prev) => prev.map((x) => (x.guid === c.guid ? { ...x, archived: true } : x)));
     if (filter === 'inbox') {
-      const target = neighborGuid && list.find((x) => x.guid === neighborGuid && !x.archived);
-      if (target) selectConvo(target);
+      if (neighbor) selectConvo(neighbor);
       else { setSelectedGuid(null); setMessages([]); }
     }
+    window.api.archive(c.guid).then(() => refreshConvos());
     showToast('Conversation archived', async () => {
       await window.api.unarchive(c.guid);
       await refreshConvos();

@@ -87,8 +87,8 @@ class AiStore {
   // A classification VERDICT (urgent or not) for the incoming message dated
   // `forDate` — remembering negatives too, so each message is judged once.
   getUrgent(guid) { return this.drafts.urgentByGuid[guid] || null; }
-  setUrgent(guid, forDate, urgent) {
-    this.drafts.urgentByGuid[guid] = { forDate, urgent, createdAt: Date.now() };
+  setUrgent(guid, forDate, urgent, expiresAt) {
+    this.drafts.urgentByGuid[guid] = { forDate, urgent, expiresAt, createdAt: Date.now() };
     writeJson(this.draftsFile, this.drafts);
   }
   clearUrgent(guid) {

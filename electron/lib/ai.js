@@ -139,21 +139,33 @@ Output ONLY my next message text, or exactly ${NO_REPLY} if no message from me i
   return res;
 }
 
-// Time-sensitive triage: is the newest incoming message urgent TODAY?
+// Time-sensitive triage: for how many hours (from now) does the newest
+// incoming message stay urgent? 0 = not time-sensitive at all.
 async function classifyUrgent({ messages, isGroup, name }) {
   const transcript = buildTranscript(messages.slice(-10), isGroup, name);
   const now = new Date();
-  const system = `You triage incoming text messages for Ronak. Decide if the NEWEST incoming message is TIME-SENSITIVE — it loses value if not seen or answered today. Time-sensitive: same-day scheduling or logistics (a meeting/call/event today or tonight, "are you here?", "running late", "can you hop on now?"), a decision or deadline within hours, or anything happening today that needs his input. NOT time-sensitive: general questions, catch-ups, FYIs, links, congratulations, plans for other days, anything that can comfortably wait until tomorrow. Reply with exactly YES or NO.`;
+  const system = `You triage incoming text messages for Ronak. Judge whether the NEWEST incoming message is TIME-SENSITIVE — it loses value if not seen or answered soon — and for HOW LONG it stays that way.
+
+Time-sensitive: same-day scheduling or logistics (a meeting/call/event today or tonight, "are you here?", "running late", "can you hop on now?"), a decision or deadline within hours, anything happening today that needs his input. NOT time-sensitive: general questions, catch-ups, FYIs, links, congratulations, plans for other days — anything that can comfortably wait until tomorrow.
+
+Reply with ONLY a number: the hours from now until this stops mattering.
+- "I'm outside" / "can you hop on now?" → 1
+- "dinner tonight at 7?" (it's 3pm) → 4 (until the dinner)
+- deadline at end of day → hours until then
+- not time-sensitive at all → 0
+Whole numbers or halves, max 24. No words, just the number.`;
   const user = `Now: ${now.toLocaleString([], { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
 
 ----
 ${transcript}
 ----
 
-Is the newest incoming message time-sensitive today? YES or NO only.`;
-  const res = await callAnthropic({ model: DRAFT_MODEL, system, messages: [{ role: 'user', content: user }], max_tokens: 4 });
+Hours until the newest incoming message stops being time-sensitive (0 if it isn't):`;
+  const res = await callAnthropic({ model: DRAFT_MODEL, system, messages: [{ role: 'user', content: user }], max_tokens: 6 });
   if (!res.ok) return res;
-  return { ok: true, urgent: /^\s*YES/i.test(res.text || '') };
+  const n = parseFloat((res.text || '').replace(/[^0-9.]/g, ''));
+  const hours = Number.isFinite(n) ? Math.max(0, Math.min(24, n)) : 0;
+  return { ok: true, hours, urgent: hours > 0 };
 }
 
 // Reflection: given the current prompt and a batch of (draft -> what Ronak
