@@ -5,6 +5,11 @@ import Composer from './Composer';
 import { daySeparator, shouldSeparate, sidebarTitle } from '../lib/format';
 
 function messagesUrl(c) {
+  if (!c) return null;
+  // 1:1 → the person's handle: this REVEALS the existing thread with history
+  // (verified). Groups have no navigate-to-existing URL on macOS — the schemes
+  // only open a compose — so we compose to the participant set (sending
+  // coalesces into the existing group).
   if (!c.isGroup && c.identifier) return 'imessage://' + encodeURIComponent(c.identifier);
   const people = (c.participants || []).filter(Boolean);
   if (!people.length) return 'imessage://';
