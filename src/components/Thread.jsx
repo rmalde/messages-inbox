@@ -4,23 +4,11 @@ import Bubble from './Bubble';
 import Composer from './Composer';
 import { daySeparator, shouldSeparate, sidebarTitle } from '../lib/format';
 
-function messagesUrl(c) {
-  if (!c) return null;
-  // 1:1 → the person's handle: this REVEALS the existing thread with history
-  // (verified). Groups have no navigate-to-existing URL on macOS — the schemes
-  // only open a compose — so we compose to the participant set (sending
-  // coalesces into the existing group).
-  if (!c.isGroup && c.identifier) return 'imessage://' + encodeURIComponent(c.identifier);
-  const people = (c.participants || []).filter(Boolean);
-  if (!people.length) return 'imessage://';
-  return 'imessage://open?addresses=' + people.map(encodeURIComponent).join(',');
-}
-
 function sameRun(a, b) {
   return a && b && a.fromMe === b.fromMe && a.sender === b.sender && !shouldSeparate(a.date, b.date);
 }
 
-export default function Thread({ convo, messages, draft, onArchive, onUnarchive, onSend }) {
+export default function Thread({ convo, messages, draft, onArchive, onUnarchive, onSend, onOpenInMessages }) {
   const scrollRef = useRef(null);
   const lastId = useRef(null);          // id of the last rendered message
   const scrolledGuid = useRef(null);    // guid we've already pinned to bottom
@@ -142,7 +130,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
           <button
             className="icon-btn"
             title="Open in Messages (⌘⇧A)"
-            onClick={() => window.api.openExternal(messagesUrl(convo))}
+            onClick={() => onOpenInMessages(convo)}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 4.2 c-4.75 0 -8.4 3 -8.4 6.9 c0 2 1 3.75 2.55 5 c-.2 1 -.7 1.9 -1.4 2.65 c-.22 .23 -.05 .62 .27 .58 c1.55 -.18 2.9 -.75 4 -1.5 c.93 .27 1.93 .42 2.98 .42 c4.75 0 8.4 -3 8.4 -6.85 s-3.65 -6.9 -8.4 -6.9 Z" />

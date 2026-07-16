@@ -153,6 +153,9 @@ async function getConversations() {
       identifier: r.chat_identifier,
       name,
       isGroup,
+      // The chat's own custom title, if any — used to reveal the exact group
+      // thread in Messages via its search autocomplete.
+      customName: (r.display_name && r.display_name.trim()) ? r.display_name.trim() : null,
       participants: people,
       lastDate: appleToMs(r.date),
       lastFromMe: !!r.is_from_me,

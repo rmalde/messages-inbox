@@ -7,7 +7,7 @@ const os = require('os');
 
 const db = require('./lib/db');
 const { Store } = require('./lib/store');
-const { sendMessage } = require('./lib/send');
+const { sendMessage, revealGroupByName } = require('./lib/send');
 const { getContactImage } = require('./lib/contacts');
 const { AiStore, REFLECT_EVERY } = require('./lib/aistore');
 const ai = require('./lib/ai');
@@ -180,6 +180,15 @@ ipcMain.handle('access:check', async () => diagnoseAccess());
 
 ipcMain.handle('access:openSettings', async () => {
   await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles');
+  return true;
+});
+
+ipcMain.handle('messages:reveal', async (_e, name) => {
+  return revealGroupByName(name);
+});
+
+ipcMain.handle('open:accessibility', async () => {
+  await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility');
   return true;
 });
 

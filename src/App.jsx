@@ -165,6 +165,26 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 5000);
   }, []);
 
+  // Open the current conversation in Messages.app. 1:1s (and unnamed groups)
+  // use the deep link; custom-named groups are revealed via Messages' search
+  // (needs Accessibility), falling back to a compose if that's not granted.
+  const openInMessages = useCallback(async (c) => {
+    if (!c) return;
+    if (c.isGroup && c.customName) {
+      const res = await window.api.revealInMessages(c.customName);
+      if (res && res.ok) return;
+      if (res && res.needsAccessibility) {
+        showToast('Grant Accessibility to jump to group chats', () => {
+          window.api.openAccessibility();
+          setToast(null);
+        });
+        return;
+      }
+    }
+    window.api.openExternal(messagesUrl(c));
+  }, [showToast]);
+
+
   const archive = useCallback(async (c) => {
     if (!c) return;
     // Pick the next OLDER conversation (the one below); fall back to the one
@@ -228,10 +248,7 @@ export default function App() {
         if (c) window.api.openChat(c.guid).then(refreshConvos);
       }),
       window.api.on('nav', (dir) => navStep(dir)),
-      window.api.on('open-in-messages', () => {
-        const url = messagesUrl(selectedRef.current);
-        if (url) window.api.openExternal(url);
-      }),
+      window.api.on('open-in-messages', () => openInMessages(selectedRef.current)),
     ];
     return () => offs.forEach((off) => off && off());
   }, [archive, refreshConvos]);
@@ -354,7 +371,7 @@ export default function App() {
         counts={counts}
       />
       {selected ? (
-        <Thread
+        <Thread onOpenInMessages={openInMessages}
           convo={selected}
           messages={messages}
           draft={draft}

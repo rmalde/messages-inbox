@@ -44,4 +44,43 @@ function sendMessage({ guid, text, handle }) {
   });
 }
 
-module.exports = { sendMessage };
+// Reveal an existing (custom-named) group thread by reproducing the manual
+// gesture: ⌘N opens a compose with the To: field focused, we type the group's
+// name, and pick the autocomplete suggestion — which switches to the existing
+// thread with history. ⌘N (not ⌘F) matters: focus lands in the recipient
+// field, so the trailing Return only SELECTS a suggestion — it can never send
+// a message. Requires Accessibility permission (System Events keystrokes).
+function revealGroupByName(name) {
+  const esc = String(name || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  if (!esc.trim()) return Promise.resolve({ ok: false, error: 'empty name' });
+  const lines = [
+    'tell application "Messages" to activate',
+    'delay 0.35',
+    'tell application "System Events"',
+    '  tell process "Messages"',
+    '    set frontmost to true',
+    '    keystroke "n" using {command down}',
+    '    delay 0.5',
+    `    keystroke "${esc}"`,
+    '    delay 0.7',
+    '    key code 125', // down arrow → highlight the first autocomplete suggestion
+    '    delay 0.15',
+    '    key code 36',  // return → select it (in the To: field this only picks a suggestion)
+    '  end tell',
+    'end tell',
+  ];
+  const args = [];
+  for (const l of lines) { args.push('-e', l); }
+  return new Promise((resolve) => {
+    execFile(OSASCRIPT, args, { timeout: 10000 }, (err, _stdout, stderr) => {
+      if (err) {
+        const msg = (stderr || err.message || '').trim();
+        const needsAccessibility = /-1719|assistive access|not allowed/i.test(msg);
+        return resolve({ ok: false, needsAccessibility, error: msg });
+      }
+      resolve({ ok: true });
+    });
+  });
+}
+
+module.exports = { sendMessage, revealGroupByName };

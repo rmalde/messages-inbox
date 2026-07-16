@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('api', {
   checkAccess: () => ipcRenderer.invoke('access:check'),
   openAccessSettings: () => ipcRenderer.invoke('access:openSettings'),
   openExternal: (url) => ipcRenderer.invoke('open:external', url),
+  revealInMessages: (name) => ipcRenderer.invoke('messages:reveal', name),
+  openAccessibility: () => ipcRenderer.invoke('open:accessibility'),
   contactImage: (handle) => ipcRenderer.invoke('contact:image', handle),
   draftFor: (guid) => ipcRenderer.invoke('ai:draftFor', guid),
   dismissDraft: (guid) => ipcRenderer.invoke('ai:dismissDraft', guid),
