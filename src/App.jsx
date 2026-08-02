@@ -215,6 +215,31 @@ export default function App() {
     window.api.openExternal(messagesUrl(c));
   }, [showToast]);
 
+  // ⌘⇧D: flip the selected conversation between Their Turn and Messages.
+  // The move is immediate (override outranks the placement freeze) and the
+  // override persists until any new message resets natural placement.
+  const toggleTurn = useCallback(() => {
+    const sel = selectedRef.current;
+    if (!sel) return;
+    const c = convosRef.current.find((x) => x.guid === sel.guid) || sel;
+    const fr = freezeRef.current;
+    // Which section is DISPLAYED right now (override > freeze > natural)?
+    let displayed;
+    if (c.turnOverride) displayed = c.turnOverride === 'theirs' ? 2 : (c.timeSensitive ? 0 : 1);
+    else if (fr && fr.guid === c.guid) displayed = fr.timeSensitive ? 0 : (fr.lastFromMe ? 2 : 1);
+    else displayed = c.timeSensitive ? 0 : (c.lastFromMe ? 2 : 1);
+    const target = displayed === 2 ? 'inbox' : 'theirs';
+    const natural = c.lastFromMe ? 'theirs' : 'inbox';
+    const override = target === natural ? null : target;
+    // Neutralize the freeze so the row moves NOW, not on deselect.
+    if (fr && fr.guid === c.guid) {
+      freezeRef.current = { guid: c.guid, lastDate: c.lastDate, lastFromMe: !!c.lastFromMe, timeSensitive: !!c.timeSensitive };
+    }
+    setConvos((prev) => prev.map((x) => (x.guid === c.guid ? { ...x, turnOverride: override } : x)));
+    setFreezeTick((t) => t + 1);
+    window.api.setTurn({ guid: c.guid, section: override, forDate: c.lastDate });
+  }, []);
+
 
   const archive = useCallback(async (c) => {
     if (!c) return;
@@ -280,6 +305,7 @@ export default function App() {
       }),
       window.api.on('nav', (dir) => navStep(dir)),
       window.api.on('open-in-messages', () => openInMessages(selectedRef.current)),
+      window.api.on('toggle-turn', () => toggleTurn()),
     ];
     return () => offs.forEach((off) => off && off());
   }, [archive, refreshConvos]);
@@ -294,16 +320,22 @@ export default function App() {
       .filter((c) => !q || c.name.toLowerCase().includes(q) || (c.lastText || '').toLowerCase().includes(q));
     if (filter !== 'inbox') return list;
     // Inbox sections: 0 Time Sensitive · 1 Messages (awaiting you) · 2 Their
-    // Turn (you answered; waiting on them). The selected row uses its FROZEN
-    // state so it doesn't move while you're on it; ⌘⇧]/[ cycling follows this
-    // same order.
+    // Turn (you answered; waiting on them). Precedence: a manual override
+    // (⌘⇧D) beats everything and moves immediately; otherwise the selected
+    // row uses its FROZEN state so it doesn't move while you're on it.
     const fr = freezeRef.current;
     const sectioned = list.map((c) => {
-      const eff = fr && fr.guid === c.guid
-        ? { lastDate: fr.lastDate, lastFromMe: fr.lastFromMe, timeSensitive: fr.timeSensitive }
-        : c;
-      const section = eff.timeSensitive ? 0 : (eff.lastFromMe ? 2 : 1);
-      return Object.assign({}, c, { section, sortDate: eff.lastDate });
+      let section;
+      let sortDate = c.lastDate;
+      if (c.turnOverride) {
+        section = c.turnOverride === 'theirs' ? 2 : (c.timeSensitive ? 0 : 1);
+      } else if (fr && fr.guid === c.guid) {
+        section = fr.timeSensitive ? 0 : (fr.lastFromMe ? 2 : 1);
+        sortDate = fr.lastDate;
+      } else {
+        section = c.timeSensitive ? 0 : (c.lastFromMe ? 2 : 1);
+      }
+      return Object.assign({}, c, { section, sortDate });
     });
     sectioned.sort((a, b) => (a.section - b.section) || (b.sortDate - a.sortDate));
     return sectioned;

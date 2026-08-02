@@ -72,6 +72,27 @@ class Store {
     this._save();
   }
 
+  // Manual section override (⌘⇧D): pin the conversation to 'theirs' or
+  // 'inbox' regardless of who spoke last. Keyed to the conversation's current
+  // last-message date, so ANY new message dissolves it back to natural
+  // placement.
+  setTurnOverride(guid, section, forDate) {
+    const r = this._rec(guid);
+    r.turnOverride = { section, forDate };
+    this._save();
+  }
+
+  clearTurnOverride(guid) {
+    const r = this.data.chats[guid];
+    if (r && r.turnOverride) { r.turnOverride = null; this._save(); }
+  }
+
+  turnOverride(guid, lastDate) {
+    const r = this.data.chats[guid];
+    const o = r && r.turnOverride;
+    return (o && o.forDate === lastDate) ? o.section : null;
+  }
+
   isArchived(guid, lastIncomingDate) {
     const r = this.data.chats[guid];
     if (!r || r.archivedAt == null) return false;
@@ -98,6 +119,7 @@ class Store {
       ...c,
       archived: this.isArchived(c.guid, c.lastIncomingDate),
       unread: this.isUnread(c.guid, c.lastIncomingDate),
+      turnOverride: this.turnOverride(c.guid, c.lastDate),
     }));
   }
 }

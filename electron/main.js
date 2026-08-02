@@ -98,6 +98,11 @@ function buildMenu() {
           click: () => win && win.webContents.send('open-in-messages'),
         },
         {
+          label: 'Toggle Their Turn',
+          accelerator: 'CmdOrCtrl+Shift+D',
+          click: () => win && win.webContents.send('toggle-turn'),
+        },
+        {
           label: 'Toggle Archived View',
           click: () => win && win.webContents.send('toggle-archived-view'),
         },
@@ -240,6 +245,13 @@ async function captureArchiveSignal(guid) {
     aiStore.clearSkip(guid);
   }
 }
+
+ipcMain.handle('chat:setTurn', async (_e, { guid, section, forDate }) => {
+  // section null clears the override (back to natural placement)
+  if (section) store.setTurnOverride(guid, section, forDate);
+  else store.clearTurnOverride(guid);
+  return true;
+});
 
 ipcMain.handle('chat:unarchive', async (_e, guid) => {
   store.unarchive(guid);

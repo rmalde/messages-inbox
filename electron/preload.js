@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   openChat: (guid) => ipcRenderer.invoke('chat:open', guid),
   archive: (guid) => ipcRenderer.invoke('chat:archive', guid),
   unarchive: (guid) => ipcRenderer.invoke('chat:unarchive', guid),
+  setTurn: (payload) => ipcRenderer.invoke('chat:setTurn', payload),
   send: (payload) => ipcRenderer.invoke('message:send', payload),
   attachment: (filePath) => ipcRenderer.invoke('attachment:data', filePath),
   isDark: () => ipcRenderer.invoke('theme:isDark'),
@@ -31,6 +32,7 @@ contextBridge.exposeInMainWorld('api', {
       'nav',
       'toggle-archived-view',
       'open-in-messages',
+      'toggle-turn',
       'theme-changed',
       'ai-changed',
     ];
