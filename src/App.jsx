@@ -48,6 +48,14 @@ export default function App() {
   const optimisticRef = useRef([]); // pending sent messages, by guid
   const visibleRef = useRef([]); // latest rendered (filtered) conversation order
   const msgCache = useRef(new Map()); // chatId -> last fetched messages (instant open)
+  const convosRef = useRef([]);       // latest raw list, for timer callbacks
+  // Placement freeze: the SELECTED conversation keeps the section + position it
+  // had when you opened it, so replying doesn't yank the row to 'Their Turn'
+  // (or re-sort it) while you're standing on it. It moves when you move off,
+  // or 20s after its state last changed.
+  const freezeRef = useRef(null);     // { guid, lastDate, lastFromMe, timeSensitive }
+  const freezeTimer = useRef(null);
+  const [freezeTick, setFreezeTick] = useState(0);
 
   const selected = useMemo(
     () => convos.find((c) => c.guid === selectedGuid) || null,
@@ -61,6 +69,7 @@ export default function App() {
       return [];
     }
     setAccessError(null);
+    convosRef.current = res.convos;
     setConvos(res.convos);
     return res.convos;
   }, []);
@@ -112,6 +121,24 @@ export default function App() {
     if (selected) refreshMessages(selected.chatId);
   }, [selected && selected.lastDate, refreshMessages]);
 
+  // While you stay on a conversation whose state changed (you replied, or a
+  // new message landed), re-place it after 20 quiet seconds.
+  useEffect(() => {
+    const fr = freezeRef.current;
+    const c = selected;
+    if (!fr || !c || fr.guid !== c.guid) return undefined;
+    if (c.lastDate === fr.lastDate && !!c.lastFromMe === fr.lastFromMe) return undefined;
+    if (freezeTimer.current) clearTimeout(freezeTimer.current);
+    freezeTimer.current = setTimeout(() => {
+      const latest = convosRef.current.find((x) => x.guid === fr.guid);
+      if (latest && freezeRef.current && freezeRef.current.guid === fr.guid) {
+        freezeRef.current = { guid: latest.guid, lastDate: latest.lastDate, lastFromMe: !!latest.lastFromMe, timeSensitive: !!latest.timeSensitive };
+        setFreezeTick((t) => t + 1);
+      }
+    }, 20000);
+    return undefined;
+  }, [selected && selected.lastDate, selected && selected.lastFromMe]);
+
   // Prefetch the conversation below the selection — it's where archiving
   // lands, so its messages should already be in memory when we jump.
   useEffect(() => {
@@ -150,6 +177,10 @@ export default function App() {
     // Already open — don't reload/reset scroll.
     if (selectedRef.current && selectedRef.current.guid === c.guid) return;
     optimisticRef.current = [];
+    // Freeze this row's placement as of now (and release the previous one).
+    if (freezeTimer.current) clearTimeout(freezeTimer.current);
+    freezeRef.current = { guid: c.guid, lastDate: c.lastDate, lastFromMe: !!c.lastFromMe, timeSensitive: !!c.timeSensitive };
+    setFreezeTick((t) => t + 1);
     // Show the cached thread instantly; the poll effect refreshes it right after.
     setMessages(msgCache.current.get(c.chatId) || []);
     setSelectedGuid(c.guid);
@@ -261,13 +292,22 @@ export default function App() {
     const list = convos
       .filter((c) => (filter === 'archived' ? c.archived : !c.archived))
       .filter((c) => !q || c.name.toLowerCase().includes(q) || (c.lastText || '').toLowerCase().includes(q));
-    // Time-sensitive conversations float to the top of the inbox (stable order
-    // within each group — this also keeps ⌘⇧]/[ cycling aligned with the list).
-    if (filter === 'inbox') {
-      return [...list.filter((c) => c.timeSensitive), ...list.filter((c) => !c.timeSensitive)];
-    }
-    return list;
-  }, [convos, filter, search]);
+    if (filter !== 'inbox') return list;
+    // Inbox sections: 0 Time Sensitive · 1 Messages (awaiting you) · 2 Their
+    // Turn (you answered; waiting on them). The selected row uses its FROZEN
+    // state so it doesn't move while you're on it; ⌘⇧]/[ cycling follows this
+    // same order.
+    const fr = freezeRef.current;
+    const sectioned = list.map((c) => {
+      const eff = fr && fr.guid === c.guid
+        ? { lastDate: fr.lastDate, lastFromMe: fr.lastFromMe, timeSensitive: fr.timeSensitive }
+        : c;
+      const section = eff.timeSensitive ? 0 : (eff.lastFromMe ? 2 : 1);
+      return Object.assign({}, c, { section, sortDate: eff.lastDate });
+    });
+    sectioned.sort((a, b) => (a.section - b.section) || (b.sortDate - a.sortDate));
+    return sectioned;
+  }, [convos, filter, search, freezeTick]);
 
   useEffect(() => { visibleRef.current = visible; }, [visible]);
 

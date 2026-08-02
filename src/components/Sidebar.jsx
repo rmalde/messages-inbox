@@ -115,16 +115,19 @@ export default function Sidebar({
         )}
         {shown.map((c, i) => (
           <React.Fragment key={c.guid}>
-            {filter === 'inbox' && c.timeSensitive && i === 0 && (
-              <div className="section-label urgent">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.2 2" />
-                </svg>
-                Time Sensitive
-              </div>
-            )}
-            {filter === 'inbox' && !c.timeSensitive && i > 0 && shown[i - 1].timeSensitive && (
-              <div className="section-label">Messages</div>
+            {filter === 'inbox' && (i === 0 || shown[i - 1].section !== c.section) && (
+              c.section === 0 ? (
+                <div className="section-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.2 2" />
+                  </svg>
+                  Time Sensitive
+                </div>
+              ) : c.section === 2 && i > 0 ? (
+                <div className="section-label">Their Turn</div>
+              ) : c.section === 1 && i > 0 ? (
+                <div className="section-label">Messages</div>
+              ) : null
             )}
           <div
             className={'convo' + (c.unread ? ' unread' : '') + (c.guid === selectedGuid ? ' selected' : '')}
