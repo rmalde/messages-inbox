@@ -47,12 +47,14 @@ function classifyError(status, body) {
   return 'other';
 }
 
-async function callAnthropic({ model, system, messages, max_tokens = 400, temperature }) {
+async function callAnthropic({ model, system, messages, max_tokens = 400, temperature, tools, tool_choice }) {
   const key = getApiKey();
   if (!key) return { ok: false, errorType: 'nokey', error: 'No API key found' };
   try {
     const reqBody = { model, max_tokens, system, messages };
     if (temperature != null) reqBody.temperature = temperature; // some models reject it
+    if (tools) reqBody.tools = tools;
+    if (tool_choice) reqBody.tool_choice = tool_choice;
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -66,8 +68,10 @@ async function callAnthropic({ model, system, messages, max_tokens = 400, temper
     if (!res.ok) {
       return { ok: false, errorType: classifyError(res.status, body), error: (body.error && body.error.message) || `HTTP ${res.status}` };
     }
-    const text = (body.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('').trim();
-    return { ok: true, text };
+    const blocks = body.content || [];
+    const text = blocks.filter((c) => c.type === 'text').map((c) => c.text).join('').trim();
+    const toolUse = blocks.find((c) => c.type === 'tool_use') || null;
+    return { ok: true, text, toolUse };
   } catch (e) {
     return { ok: false, errorType: 'network', error: String((e && e.message) || e) };
   }
@@ -124,19 +128,36 @@ ${transcript}
 
 You write ONLY my (Ronak's, labelled "Me:") own messages — never the other person's words. ${turnRule}
 
-Output ONLY my next message text, or exactly ${NO_REPLY} if no message from me is warranted right now.`;
+Think freely first in plain text if it helps — who this is, what the moment calls for, how I'd phrase it. Then ALWAYS finish by calling submit_message. The message field is wired DIRECTLY into my send box: it must contain only the literal message text, never commentary, questions, hedging, or reasoning (those belong in your thinking, before the tool call). If context is thin, still commit to the most plausible message in my voice.`;
   const res = await callAnthropic({
     model: DRAFT_MODEL,
     system: systemPrompt,
     messages: [{ role: 'user', content: user }],
-    max_tokens: 320,
+    max_tokens: 800,
     temperature: 0.7,
+    tools: [{
+      name: 'submit_message',
+      description: "Submit the final decision: either Ronak's next message, or that no message is warranted right now.",
+      input_schema: {
+        type: 'object',
+        properties: {
+          no_reply: { type: 'boolean', description: 'true when no message from Ronak is warranted right now' },
+          message: { type: 'string', description: 'the literal message text, exactly as Ronak will send it — no commentary or questions about the task (omit when no_reply is true)' },
+        },
+      },
+    }],
   });
-  if (res.ok) {
-    const stripped = (res.text || '').replace(/[\s."'`*]+$/g, '').trim();
-    if (!stripped || stripped.toUpperCase() === NO_REPLY) return { ok: true, skip: true };
+  if (!res.ok) return res;
+  if (res.toolUse && res.toolUse.name === 'submit_message') {
+    const input = res.toolUse.input || {};
+    const msg = (input.message || '').trim();
+    if (input.no_reply || !msg || msg.toUpperCase() === NO_REPLY) return { ok: true, skip: true };
+    return { ok: true, text: msg };
   }
-  return res;
+  // Fallback: no tool call — treat the raw text as before.
+  const stripped = (res.text || '').replace(/[\s."'`*]+$/g, '').trim();
+  if (!stripped || stripped.toUpperCase() === NO_REPLY) return { ok: true, skip: true };
+  return { ok: true, text: res.text };
 }
 
 // Time-sensitive triage: for how many hours (from now) does the newest
@@ -148,22 +169,38 @@ async function classifyUrgent({ messages, isGroup, name }) {
 
 Time-sensitive: same-day scheduling or logistics (a meeting/call/event today or tonight, "are you here?", "running late", "can you hop on now?"), a decision or deadline within hours, anything happening today that needs his input. NOT time-sensitive: general questions, catch-ups, FYIs, links, congratulations, plans for other days — anything that can comfortably wait until tomorrow.
 
-Reply with ONLY a number: the hours from now until this stops mattering.
+Think briefly if needed, then ALWAYS finish by calling submit_urgency with hours: how long from now this stays time-sensitive.
 - "I'm outside" / "can you hop on now?" → 1
 - "dinner tonight at 7?" (it's 3pm) → 4 (until the dinner)
 - deadline at end of day → hours until then
 - not time-sensitive at all → 0
-Whole numbers or halves, max 24. No words, just the number.`;
+Whole numbers or halves, max 24.`;
   const user = `Now: ${now.toLocaleString([], { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
 
 ----
 ${transcript}
 ----
 
-Hours until the newest incoming message stops being time-sensitive (0 if it isn't):`;
-  const res = await callAnthropic({ model: DRAFT_MODEL, system, messages: [{ role: 'user', content: user }], max_tokens: 6 });
+Call submit_urgency with the hours (0 if it isn't time-sensitive).`;
+  const res = await callAnthropic({
+    model: DRAFT_MODEL,
+    system,
+    messages: [{ role: 'user', content: user }],
+    max_tokens: 300,
+    tools: [{
+      name: 'submit_urgency',
+      description: 'Submit how many hours from now the newest incoming message stays time-sensitive (0 = not time-sensitive).',
+      input_schema: {
+        type: 'object',
+        properties: { hours: { type: 'number', description: 'hours from now; 0 if not time-sensitive; max 24' } },
+        required: ['hours'],
+      },
+    }],
+  });
   if (!res.ok) return res;
-  const n = parseFloat((res.text || '').replace(/[^0-9.]/g, ''));
+  let n = NaN;
+  if (res.toolUse && res.toolUse.name === 'submit_urgency') n = parseFloat(res.toolUse.input && res.toolUse.input.hours);
+  else n = parseFloat((res.text || '').replace(/[^0-9.]/g, '')); // fallback
   const hours = Number.isFinite(n) ? Math.max(0, Math.min(24, n)) : 0;
   return { ok: true, hours, urgent: hours > 0 };
 }
