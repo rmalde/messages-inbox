@@ -116,6 +116,7 @@ function buildMenu() {
 
 app.whenReady().then(() => {
   store = new Store(path.join(app.getPath('userData'), 'inbox-store.json'));
+  store.onExternalChange = () => { if (win) win.webContents.send('ai-changed'); };
   aiStore = new AiStore(app.getPath('userData'));
   aiStatus.hasKey = ai.hasKey();
   // Custom dock icon when launched from source (the packaged build already

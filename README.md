@@ -140,3 +140,21 @@ Key is read from `ANTHROPIC_API_KEY` (env or `~/.zshrc`).
 
 - Sendable tapbacks (blocked by macOS), clustered group avatars, search across
   message bodies.
+
+## Agent access (editing state while the app runs)
+
+`~/Library/Application Support/Messages Inbox/inbox-store.json` is the app's
+state db (archive / read / section overrides), and it is safe to edit while
+the app is running — the app and any agent share one contract:
+
+1. Open the file and take an exclusive **flock(2)** on it (auto-releases if
+   you crash). From Node: `fs-native-extensions` → `tryLock(fd)` / `unlock(fd)`;
+   from Python: `fcntl.flock(f, fcntl.LOCK_EX)`.
+2. Under the lock: read → modify → write **in place** (truncate + write on the
+   locked fd — never replace-by-rename, that swaps the locked inode). Hold the
+   lock only for the read-modify-write.
+3. That's it. The app locks the same way for its writes, reloads before every
+   pass, and file-watches — your edit shows up in the UI within a beat.
+
+Example (archive a chat): set `chats["<guid>"].archivedAt` to `Date.now()`;
+unarchive by setting it to `null`. Guids come from chat.db's `chat.guid`.
