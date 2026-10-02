@@ -278,6 +278,10 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
 }
 .convo.unread .convo-name { font-weight: 690; }
+/* Muted (⌘⇧M): bell.slash between name and time, so Archived shows why it stays put. */
+.muted-mark { display: flex; align-self: center; flex-shrink: 0; color: var(--text-tertiary); }
+.convo.selected .muted-mark { color: rgba(255, 255, 255, 0.85); }
+body.win-blurred .convo.selected .muted-mark { color: var(--text-secondary); }
 .convo-time { font-size: var(--t-caption); color: var(--text-secondary); flex-shrink: 0; font-weight: 400; font-variant-numeric: tabular-nums; }
 .convo-preview {
   font-size: var(--t-sub); color: var(--text-secondary); margin-top: 0.5px;
@@ -355,6 +359,30 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 }
 .icon-btn:hover { background: var(--hover); color: var(--text); }
 .icon-btn:active { background: var(--field); transform: scale(0.94); }
+/* Mute toggle in its "on" state. */
+.icon-btn.muted-on { color: var(--blue); background: color-mix(in srgb, var(--blue) 13%, transparent); }
+.icon-btn.muted-on:hover { color: var(--blue); background: color-mix(in srgb, var(--blue) 20%, transparent); }
+
+/* Standing notice on a muted thread, with the way back right in it. Sits just
+   below the drag strip so its button stays clickable. */
+.mute-banner {
+  position: absolute; top: 84px; left: 0; right: 0; margin: 0 auto; width: max-content;
+  z-index: 21; -webkit-app-region: no-drag;
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 6px 5px 12px; border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 0.5px solid var(--glass-edge);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  font-size: var(--t-caption); color: var(--text-secondary); white-space: nowrap;
+  animation: popUp 0.18s cubic-bezier(0.2, 1, 0.3, 1);
+}
+.mute-banner button {
+  background: none; border: none; color: var(--blue); cursor: default;
+  font-size: var(--t-caption); font-weight: 650; padding: 3px 8px; border-radius: 999px;
+}
+.mute-banner button:hover { background: var(--hover); }
+.mute-banner button:active { opacity: 0.6; }
 
 .messages {
   flex: 1; overflow-y: auto;
@@ -363,6 +391,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   scroll-behavior: smooth;
   overscroll-behavior: contain;
 }
+.messages.has-banner { padding-top: 124px; }
 
 .day-sep:first-child { margin-top: 0; }
 .day-sep {

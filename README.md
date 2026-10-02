@@ -17,9 +17,15 @@ anywhere; everything runs on your machine.
   archive it. Archiving is *email semantics*: a thread stays in the Inbox even
   after you reply — it only leaves when **you** archive it, and it
   **automatically returns to the Inbox the moment someone sends a new message**.
+- **Mute:** `⌘⇧M` (or the bell button in the conversation header) archives a
+  conversation for good — new messages **don't** bring it back to the Inbox.
+  Muted threads keep a bell-slash mark in Archived and show a **Muted** banner
+  with an **Unmute** button; the toast after muting has **Undo**, and `⌘⇧M`
+  again moves it back to the Inbox. This is the app's own mute: it doesn't
+  change Hide Alerts in Messages, so notifications still arrive as before.
 - **Archive shortcut:** `⌘⇧E` (Conversation → Archive Conversation).
-  - `⌘⇧A` toggle Inbox/Archived view · `⌘⇧R` mark read · `⌘↑/⌘↓` move between
-    conversations.
+  - `⌘⇧M` mute / unmute · `⌘⇧A` toggle Inbox/Archived view · `⌘⇧R` mark read ·
+    `⌘↑/⌘↓` move between conversations.
 - **Full iMessage-style UI:** blue/green/gray bubbles, tapback reactions,
   reply quoting, inline image attachments, day/time separators, group sender
   labels, unread dots, emoji picker, send/appear animations.
@@ -33,8 +39,9 @@ anywhere; everything runs on your machine.
   writes to Apple's database.**
 - **Sending:** via AppleScript (`osascript`) to the existing chat — the same
   channel Messages.app uses. Works for iMessage and SMS, 1:1 and groups.
-- **Archive / read state:** stored separately in a small JSON file in the app's
-  userData dir, keyed by chat GUID. Your real Messages app is untouched.
+- **Archive / mute / read state:** stored separately in a small JSON file in
+  the app's userData dir, keyed by chat GUID. Your real Messages app is
+  untouched.
 
 ## Run it (development)
 
