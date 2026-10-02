@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
+import { BellGlyph, BellSlashGlyph } from './MuteGlyphs';
 import { listTime, sidebarTitle } from '../lib/format';
 
 const PAGE = 50; // rows rendered per chunk — keeps huge archives from mounting at once
@@ -29,7 +30,7 @@ function DraftChip() {
 
 export default function Sidebar({
   conversations, filter, setFilter, search, setSearch,
-  selectedGuid, onSelect, onArchive, onUnarchive, onOpenPrompts, counts, aiBusy,
+  selectedGuid, onSelect, onArchive, onUnarchive, onUnmute, onOpenPrompts, counts, aiBusy,
 }) {
   // Incrementally reveal rows as the user scrolls so an archive of 1000+
   // conversations doesn't mount (and fire a contact-photo lookup) all at once.
@@ -135,22 +136,37 @@ export default function Sidebar({
             <div className="convo-body">
               <div className="convo-row1">
                 <span className="convo-name">{sidebarTitle(c.name, c.isGroup)}</span>
+                {c.muted && (
+                  <span className="muted-mark" title="Muted — new messages stay in Archived">
+                    <BellSlashGlyph size={12} strokeWidth={2.2} />
+                  </span>
+                )}
                 <span className="convo-time">{listTime(c.lastDate)}</span>
               </div>
               <div className="convo-preview">{c.hasDraft && <DraftChip />}{preview(c)}</div>
             </div>
-            <button
-              className="row-archive"
-              title={filter === 'archived' ? 'Move to Inbox' : 'Archive (⌘⇧E)'}
-              onClick={(e) => { e.stopPropagation(); (filter === 'archived' ? onUnarchive : onArchive)(c); }}
-            >
-              {filter === 'archived' ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 14 v4.4 A1.6 1.6 0 0 0 5.6 20 h12.8 a1.6 1.6 0 0 0 1.6 -1.6 V14" />
-                  <path d="M12 14.5 V4.5 M8 8.2 L12 4.2 L16 8.2" />
-                </svg>
-              ) : <ArchiveGlyph />}
-            </button>
+            {c.muted ? (
+              <button
+                className="row-archive"
+                title="Unmute — move back to Inbox (⌘⇧M)"
+                onClick={(e) => { e.stopPropagation(); onUnmute(c); }}
+              >
+                <BellGlyph />
+              </button>
+            ) : (
+              <button
+                className="row-archive"
+                title={filter === 'archived' ? 'Move to Inbox' : 'Archive (⌘⇧E)'}
+                onClick={(e) => { e.stopPropagation(); (filter === 'archived' ? onUnarchive : onArchive)(c); }}
+              >
+                {filter === 'archived' ? (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 14 v4.4 A1.6 1.6 0 0 0 5.6 20 h12.8 a1.6 1.6 0 0 0 1.6 -1.6 V14" />
+                    <path d="M12 14.5 V4.5 M8 8.2 L12 4.2 L16 8.2" />
+                  </svg>
+                ) : <ArchiveGlyph />}
+              </button>
+            )}
           </div>
           </React.Fragment>
         ))}
@@ -159,7 +175,7 @@ export default function Sidebar({
       <div className="list-footer">
         {filter === 'inbox'
           ? `${counts.inbox.toLocaleString()} conversation${counts.inbox === 1 ? '' : 's'}${counts.unread ? ` · ${counts.unread} unread` : ''}`
-          : `${counts.archived.toLocaleString()} archived`}
+          : `${counts.archived.toLocaleString()} archived${counts.muted ? ` · ${counts.muted.toLocaleString()} muted` : ''}`}
       </div>
     </div>
   );

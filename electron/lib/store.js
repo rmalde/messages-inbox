@@ -10,6 +10,14 @@
 //   - A new incoming message (date > archivedAt) automatically returns it to
 //     the inbox.
 //
+// Mute semantics (in-app, like Gmail's mute — nothing to do with Messages'
+// own Hide Alerts):
+//   - Muting stamps `mutedAt`. A muted conversation is archived whatever
+//     archivedAt says, and new incoming messages do NOT bring it back.
+//   - Unmuting clears `mutedAt` only, restoring the archive state it had
+//     before it was muted (what Undo relies on).
+//   - Move to Inbox (unarchive) clears both, so it always lands in the inbox.
+//
 // Unread semantics:
 //   - `lastOpenedAt` is stamped when the conversation is opened in this app.
 //   - Unread when newest incoming message date > lastOpenedAt.
@@ -63,8 +71,25 @@ class Store {
   }
 
   unarchive(guid) {
-    this._rec(guid).archivedAt = null;
+    const r = this._rec(guid);
+    r.archivedAt = null;
+    r.mutedAt = null; // Move to Inbox always lands in the inbox
     this._save();
+  }
+
+  mute(guid, now) {
+    this._rec(guid).mutedAt = now;
+    this._save();
+  }
+
+  unmute(guid) {
+    this._rec(guid).mutedAt = null;
+    this._save();
+  }
+
+  isMuted(guid) {
+    const r = this.data.chats[guid];
+    return !!(r && r.mutedAt != null);
   }
 
   markOpened(guid, now) {
@@ -74,7 +99,10 @@ class Store {
 
   isArchived(guid, lastIncomingDate) {
     const r = this.data.chats[guid];
-    if (!r || r.archivedAt == null) return false;
+    if (!r) return false;
+    // Muted: stays archived no matter how many new messages arrive.
+    if (r.mutedAt != null) return true;
+    if (r.archivedAt == null) return false;
     // A newer incoming message unarchives automatically.
     return (lastIncomingDate || 0) <= r.archivedAt;
   }
@@ -97,6 +125,7 @@ class Store {
     return convos.map((c) => ({
       ...c,
       archived: this.isArchived(c.guid, c.lastIncomingDate),
+      muted: this.isMuted(c.guid),
       unread: this.isUnread(c.guid, c.lastIncomingDate),
     }));
   }

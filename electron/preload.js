@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('api', {
   openChat: (guid) => ipcRenderer.invoke('chat:open', guid),
   archive: (guid) => ipcRenderer.invoke('chat:archive', guid),
   unarchive: (guid) => ipcRenderer.invoke('chat:unarchive', guid),
+  mute: (guid) => ipcRenderer.invoke('chat:mute', guid),
+  unmute: (guid) => ipcRenderer.invoke('chat:unmute', guid),
   send: (payload) => ipcRenderer.invoke('message:send', payload),
   attachment: (filePath) => ipcRenderer.invoke('attachment:data', filePath),
   isDark: () => ipcRenderer.invoke('theme:isDark'),
@@ -25,6 +27,7 @@ contextBridge.exposeInMainWorld('api', {
   on: (channel, cb) => {
     const allowed = [
       'archive-current',
+      'mute-current',
       'mark-read-current',
       'nav',
       'toggle-archived-view',

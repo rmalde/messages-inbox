@@ -76,6 +76,12 @@ function buildMenu() {
           click: () => win && win.webContents.send('archive-current'),
         },
         {
+          // Toggles: on a muted conversation the same shortcut unmutes it.
+          label: 'Mute / Unmute Conversation',
+          accelerator: 'CmdOrCtrl+Shift+M',
+          click: () => win && win.webContents.send('mute-current'),
+        },
+        {
           label: 'Mark Read',
           accelerator: 'CmdOrCtrl+Shift+R',
           click: () => win && win.webContents.send('mark-read-current'),
@@ -234,6 +240,20 @@ async function captureArchiveSignal(guid) {
 
 ipcMain.handle('chat:unarchive', async (_e, guid) => {
   store.unarchive(guid);
+  return true;
+});
+
+// Mute = an archive that new messages can't undo. Like archiving it's a
+// decision not to reply, so it carries the same learning signal.
+ipcMain.handle('chat:mute', async (_e, guid) => {
+  store.mute(guid, Date.now());
+  captureArchiveSignal(guid);
+  if (aiStore) aiStore.clearUrgent(guid);
+  return true;
+});
+
+ipcMain.handle('chat:unmute', async (_e, guid) => {
+  store.unmute(guid);
   return true;
 });
 
