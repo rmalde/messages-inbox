@@ -169,11 +169,13 @@ async function getContactImage(handle) {
     const join = h.kind === 'phone'
       ? 'ZABCDPHONENUMBER p JOIN ZABCDRECORD r ON r.Z_PK = p.ZOWNER'
       : 'ZABCDEMAILADDRESS e JOIN ZABCDRECORD r ON r.Z_PK = e.ZOWNER';
-    const esc = String(h.num).replace(/'/g, "''");
+    // Encode as a hex blob literal (only [0-9a-f] chars) instead of a quoted
+    // string so the value can't break out of the SQL literal at all.
+    const hex = Buffer.from(String(h.num), 'utf8').toString('hex');
     const rows = await query(
       h.db,
       `SELECT ${PICK_IMG} AS img FROM ${join}
-       WHERE ${col} = '${esc}' AND (${PICK_IMG}) IS NOT NULL LIMIT 1;`
+       WHERE ${col} = CAST(x'${hex}' AS TEXT) AND (${PICK_IMG}) IS NOT NULL LIMIT 1;`
     );
     const url = rows[0] && blobToDataUrl(rows[0].img);
     if (url) { urlCache.set(key, url); return url; }
