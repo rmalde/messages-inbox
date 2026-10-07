@@ -65,6 +65,12 @@ changes, you grant **Full Disk Access once** and it persists across every future
 update. First launch shows a guided "Full Disk Access" screen if needed — add
 `/Applications/Messages Inbox.app` and toggle it on.
 
+If the launcher can't rebuild the renderer itself (it looks for Node at a fixed
+path, which isn't there when Node comes from nvm), the app does it on startup
+with the Node built into Electron, so updates always show up. If a build ever
+fails, the details are in `~/Library/Application Support/Messages
+Inbox/renderer-build.log`.
+
 Requires the repo to stay at `~/tech/messages-inbox`. Re-run `make-app` only if
 the Electron version itself is upgraded.
 
@@ -99,7 +105,8 @@ electron/
     db.js              chat.db queries -> conversations & messages
     attributedBody.js  decode message text from the binary blob
     contacts.js        best-effort name resolution from AddressBook
-    store.js           local archive + read-state (JSON)
+    store.js           local archive + mute + read-state (JSON)
+    renderer-build.js  rebuilds dist/ on launch when src/ is newer
     send.js            AppleScript send
     bin.js             absolute paths to system sqlite3 / osascript
 build/                 app icon (.icns) + entitlements for packaging

@@ -7,6 +7,7 @@ const os = require('os');
 
 const db = require('./lib/db');
 const { Store } = require('./lib/store');
+const { ensureFreshRenderer } = require('./lib/renderer-build');
 const { sendMessage } = require('./lib/send');
 const { getContactImage } = require('./lib/contacts');
 const { AiStore, REFLECT_EVERY } = require('./lib/aistore');
@@ -115,7 +116,7 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   store = new Store(path.join(app.getPath('userData'), 'inbox-store.json'));
   aiStore = new AiStore(app.getPath('userData'));
   aiStatus.hasKey = ai.hasKey();
@@ -126,6 +127,14 @@ app.whenReady().then(() => {
     if (app.dock && fs.existsSync(iconPath)) app.dock.setIcon(iconPath);
   } catch { /* ignore */ }
   buildMenu();
+  // A git pull may have brought renderer changes the launcher couldn't build
+  // (see lib/renderer-build.js). Build them now, before the window loads.
+  if (!process.env.VITE_DEV) {
+    await ensureFreshRenderer(
+      path.join(__dirname, '..'),
+      path.join(app.getPath('userData'), 'renderer-build.log')
+    );
+  }
   createWindow();
 
   // AI drafting loop — generate drafts for today's awaiting-reply chats and
