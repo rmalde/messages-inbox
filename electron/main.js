@@ -11,6 +11,7 @@ const { sendMessage, revealGroupByName } = require('./lib/send');
 const { getContactImage } = require('./lib/contacts');
 const { AiStore, REFLECT_EVERY } = require('./lib/aistore');
 const ai = require('./lib/ai');
+const rank = require('./lib/rank');
 
 // When run from source (`electron .`) the app would otherwise show as
 // "Electron" with the default icon. Force the real identity.
@@ -23,6 +24,9 @@ let aiReflectCooldownUntil = 0;
 let aiDraftCooldownUntil = 0; // back off drafting after billing/auth failures
 let aiLastGenAt = 0;          // throttle expensive generation to GEN_EVERY_MS
 let aiGenBusy = false;        // guard against overlapping generation passes
+let rankBusy = false;         // a backlog merge sort is running
+let rankCooldownUntil = 0;    // back off ranking after billing/auth failures
+const rankCards = new Map();  // guid -> { forDate, card } comparison snippets
 let win;
 
 function createWindow() {
@@ -174,6 +178,8 @@ ipcMain.handle('conversations:list', async () => {
         const live = u && (u.expiresAt ? now < u.expiresAt : now - u.forDate < URGENT_TTL_MS);
         c.timeSensitive = !!(u && u.urgent && live && u.forDate === c.lastIncomingDate && !c.lastFromMe);
       }
+      const rankIdx = new Map(aiStore.getPriority().order.map((g, i) => [g, i]));
+      for (const c of convos) c.priorityRank = rankIdx.has(c.guid) ? rankIdx.get(c.guid) : null;
     }
     return { ok: true, convos };
   } catch (e) {
@@ -336,6 +342,17 @@ async function aiTick() {
       if (u.urgent) changed = true;
     }
   }
+  // Prune ranked entries whose conversation is gone or archived (removal
+  // preserves the relative order of everything else).
+  {
+    const valid = new Set(convos.filter((c) => !c.archived).map((c) => c.guid));
+    const pr = aiStore.getPriority();
+    if (pr.order.some((g) => !valid.has(g))) {
+      pr.order = pr.order.filter((g) => valid.has(g));
+      aiStore.savePriority();
+      changed = true;
+    }
+  }
   if (changed && win) win.webContents.send('ai-changed');
 
   // Fire a reflection if enough samples have piled up (e.g. while Ronak was
@@ -384,9 +401,97 @@ async function aiTick() {
       if (triageBudget-- <= 0) break;
       await classifyUrgentFor(c);
     }
+
+    // Priority ranking (jev): one-time backlog merge sort, then each new
+    // incoming message binary-searches its slot — the Messages section is a
+    // priority queue ordered by Ronak's rubric.
+    if (rank.hasKey() && now >= rankCooldownUntil) {
+      const pr = aiStore.getPriority();
+      if (!pr.backfilled) {
+        runBacklogSort(convos); // detached — minutes-long, has its own guard
+      } else if (!rankBusy) {
+        const byGuid = {};
+        for (const c of convos) byGuid[c.guid] = c;
+        const needsRank = convos.filter((c) =>
+          !c.archived && !c.lastFromMe && c.lastIncomingDate &&
+          !(pr.byGuid[c.guid] && pr.byGuid[c.guid].forDate === c.lastIncomingDate));
+        let rankBudget = 2;
+        for (const c of needsRank) {
+          if (rankBudget-- <= 0) break;
+          await insertIntoRanking(c, byGuid);
+        }
+      }
+    }
   } finally {
     aiGenBusy = false;
   }
+}
+
+// ---- priority ranking helpers ----------------------------------------------
+
+async function rankCardFor(c) {
+  const hit = rankCards.get(c.guid);
+  if (hit && hit.forDate === c.lastDate) return hit.card;
+  const msgs = await db.getMessages(c.chatId, 10).catch(() => []);
+  const card = rank.buildCard(c, msgs);
+  rankCards.set(c.guid, { forDate: c.lastDate, card });
+  if (rankCards.size > 400) rankCards.delete(rankCards.keys().next().value);
+  return card;
+}
+
+// Model comparison with recency fallback — a billing/auth failure cools the
+// whole ranker off instead of burning the queue on doomed calls.
+async function rankCompare(a, b) {
+  if (Date.now() < rankCooldownUntil) return a.lastDate >= b.lastDate ? 'A' : 'B';
+  const [ca, cb] = [await rankCardFor(a), await rankCardFor(b)];
+  const res = await rank.compareCards(ca, cb);
+  if (!res.ok) {
+    if (res.errorType === 'billing' || res.errorType === 'auth' || res.errorType === 'nokey') {
+      rankCooldownUntil = Date.now() + 10 * 60 * 1000;
+      aiStatus.lastError = 'ranking: ' + res.error;
+      aiStatus.lastErrorType = res.errorType;
+    }
+    return a.lastDate >= b.lastDate ? 'A' : 'B';
+  }
+  return res.winner;
+}
+
+// One-time: merge sort the existing Messages backlog into priority order.
+async function runBacklogSort(convos) {
+  if (rankBusy) return;
+  rankBusy = true;
+  const cooldownBefore = rankCooldownUntil;
+  try {
+    const list = convos.filter((c) => !c.archived && !c.lastFromMe);
+    const sorted = await rank.mergeSort(list, rankCompare);
+    // If billing died mid-sort the result is part-recency garbage — don't
+    // persist it as "backfilled"; retry wholesale once the cooldown lifts.
+    if (rankCooldownUntil > cooldownBefore) return;
+    const pr = aiStore.getPriority();
+    pr.order = sorted.map((c) => c.guid);
+    pr.byGuid = {};
+    for (const c of sorted) pr.byGuid[c.guid] = { forDate: c.lastIncomingDate };
+    pr.backfilled = true;
+    aiStore.savePriority();
+    if (win) win.webContents.send('ai-changed');
+  } catch (e) {
+    aiStatus.lastError = 'backlog sort: ' + String((e && e.message) || e);
+  } finally {
+    rankBusy = false;
+  }
+}
+
+// Binary-insert one conversation (new or newly-active) into the ranked order.
+async function insertIntoRanking(c, byGuid) {
+  const pr = aiStore.getPriority();
+  const rankedGuids = pr.order.filter((g) => g !== c.guid && byGuid[g] && !byGuid[g].archived);
+  const ranked = rankedGuids.map((g) => byGuid[g]);
+  const idx = await rank.binaryInsertIndex(ranked, c, rankCompare);
+  rankedGuids.splice(idx, 0, c.guid);
+  pr.order = rankedGuids;
+  pr.byGuid[c.guid] = { forDate: c.lastIncomingDate };
+  aiStore.savePriority();
+  if (win) win.webContents.send('ai-changed');
 }
 
 async function classifyUrgentFor(c) {

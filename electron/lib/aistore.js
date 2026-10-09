@@ -98,6 +98,17 @@ class AiStore {
     }
   }
 
+  // ---- priority ranking ----
+  // Persistent priority queue for the Messages section: `order` is guids,
+  // highest priority first; `byGuid[guid].forDate` records which incoming
+  // message was ranked (a newer one triggers re-insertion); `backfilled` marks
+  // the one-time merge sort of the backlog as done.
+  getPriority() {
+    if (!this.drafts.priority) this.drafts.priority = { order: [], byGuid: {}, backfilled: false };
+    return this.drafts.priority;
+  }
+  savePriority() { writeJson(this.draftsFile, this.drafts); }
+
   // ---- learning ----
   // Returns true if the pending queue has reached the reflection threshold.
   recordSample(sample) {

@@ -132,7 +132,7 @@ export default function App() {
     freezeTimer.current = setTimeout(() => {
       const latest = convosRef.current.find((x) => x.guid === fr.guid);
       if (latest && freezeRef.current && freezeRef.current.guid === fr.guid) {
-        freezeRef.current = { guid: latest.guid, lastDate: latest.lastDate, lastFromMe: !!latest.lastFromMe, timeSensitive: !!latest.timeSensitive };
+        freezeRef.current = { guid: latest.guid, lastDate: latest.lastDate, lastFromMe: !!latest.lastFromMe, timeSensitive: !!latest.timeSensitive, rank: latest.priorityRank ?? null };
         setFreezeTick((t) => t + 1);
       }
     }, 20000);
@@ -179,7 +179,7 @@ export default function App() {
     optimisticRef.current = [];
     // Freeze this row's placement as of now (and release the previous one).
     if (freezeTimer.current) clearTimeout(freezeTimer.current);
-    freezeRef.current = { guid: c.guid, lastDate: c.lastDate, lastFromMe: !!c.lastFromMe, timeSensitive: !!c.timeSensitive };
+    freezeRef.current = { guid: c.guid, lastDate: c.lastDate, lastFromMe: !!c.lastFromMe, timeSensitive: !!c.timeSensitive, rank: c.priorityRank ?? null };
     setFreezeTick((t) => t + 1);
     // Show the cached thread instantly; the poll effect refreshes it right after.
     setMessages(msgCache.current.get(c.chatId) || []);
@@ -233,7 +233,7 @@ export default function App() {
     const override = target === natural ? null : target;
     // Neutralize the freeze so the row moves NOW, not on deselect.
     if (fr && fr.guid === c.guid) {
-      freezeRef.current = { guid: c.guid, lastDate: c.lastDate, lastFromMe: !!c.lastFromMe, timeSensitive: !!c.timeSensitive };
+      freezeRef.current = { guid: c.guid, lastDate: c.lastDate, lastFromMe: !!c.lastFromMe, timeSensitive: !!c.timeSensitive, rank: c.priorityRank ?? null };
     }
     setConvos((prev) => prev.map((x) => (x.guid === c.guid ? { ...x, turnOverride: override } : x)));
     setFreezeTick((t) => t + 1);
@@ -327,17 +327,29 @@ export default function App() {
     const sectioned = list.map((c) => {
       let section;
       let sortDate = c.lastDate;
+      let rank = c.priorityRank;
       if (c.turnOverride) {
         section = c.turnOverride === 'theirs' ? 2 : (c.timeSensitive ? 0 : 1);
       } else if (fr && fr.guid === c.guid) {
         section = fr.timeSensitive ? 0 : (fr.lastFromMe ? 2 : 1);
         sortDate = fr.lastDate;
+        rank = fr.rank;
       } else {
         section = c.timeSensitive ? 0 : (c.lastFromMe ? 2 : 1);
       }
-      return Object.assign({}, c, { section, sortDate });
+      return Object.assign({}, c, { section, sortDate, rank });
     });
-    sectioned.sort((a, b) => (a.section - b.section) || (b.sortDate - a.sortDate));
+    // Messages (section 1) is a PRIORITY queue: jev-ranked order first, then
+    // anything not yet ranked chronologically. Other sections stay chronological.
+    sectioned.sort((a, b) => {
+      if (a.section !== b.section) return a.section - b.section;
+      if (a.section === 1) {
+        const ra = a.rank == null ? Infinity : a.rank;
+        const rb = b.rank == null ? Infinity : b.rank;
+        if (ra !== rb) return ra - rb;
+      }
+      return b.sortDate - a.sortDate;
+    });
     return sectioned;
   }, [convos, filter, search, freezeTick]);
 

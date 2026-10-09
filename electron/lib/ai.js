@@ -41,7 +41,7 @@ function hasKey() { return !!getApiKey(); }
 
 function classifyError(status, body) {
   const msg = (body && body.error && body.error.message) || '';
-  if (/credit balance|too low|billing/i.test(msg)) return 'billing';
+  if (/credit balance|too low|billing|usage limits|spend limit/i.test(msg)) return 'billing';
   if (status === 401 || /authentication|invalid x-api-key/i.test(msg)) return 'auth';
   if (status === 429 || /rate limit/i.test(msg)) return 'rate';
   return 'other';
