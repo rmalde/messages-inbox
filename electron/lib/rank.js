@@ -14,6 +14,14 @@ const RANK_MODEL = 'typesafe/jev-router';
 let cachedKey;
 function getKey() {
   if (cachedKey !== undefined) return cachedKey;
+  // A dedicated key file wins (Trajectory's org key from Secret Manager lives
+  // here — the personal key in ~/.zshrc is out of credits).
+  for (const d of ['Messages Inbox', 'messages-inbox']) {
+    try {
+      const k = fs.readFileSync(os.homedir() + '/Library/Application Support/' + d + '/openrouter-key', 'utf8').trim();
+      if (k) { cachedKey = k; return cachedKey; }
+    } catch { /* missing */ }
+  }
   if (process.env.OPENROUTER_API_KEY) { cachedKey = process.env.OPENROUTER_API_KEY; return cachedKey; }
   const files = ['.zshrc', '.zprofile', '.zshenv', '.bash_profile', '.profile'].map((f) => os.homedir() + '/' + f);
   for (const f of files) {
@@ -52,41 +60,62 @@ function classifyError(status, body) {
   return 'other';
 }
 
+// Global concurrency gate: the parallel merge sort would otherwise fire ~90
+// simultaneous requests and trip rate limits into silent fallbacks.
+const MAX_IN_FLIGHT = 4;
+let inFlight = 0;
+const waiters = [];
+async function gate() {
+  if (inFlight >= MAX_IN_FLIGHT) await new Promise((r) => waiters.push(r));
+  inFlight++;
+}
+function ungate() {
+  inFlight--;
+  const w = waiters.shift();
+  if (w) w();
+}
+
 async function callJev(user) {
   const key = getKey();
   if (!key) return { ok: false, errorType: 'nokey', error: 'No OPENROUTER_API_KEY found' };
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { authorization: 'Bearer ' + key, 'content-type': 'application/json' },
-        body: JSON.stringify({
-          model: RANK_MODEL,
-          temperature: 0,
-          max_tokens: 8,
-          messages: [
-            { role: 'system', content: RUBRIC },
-            { role: 'user', content: user },
-          ],
-        }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const errorType = classifyError(res.status, body);
-        if (errorType === 'rate' && attempt === 0) {
-          await new Promise((r) => setTimeout(r, 1200));
-          continue;
+  await gate();
+  try {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { authorization: 'Bearer ' + key, 'content-type': 'application/json' },
+          body: JSON.stringify({
+            model: RANK_MODEL,
+            temperature: 0,
+            max_tokens: 1500,                    // hard pairs reason at length before the letter
+            reasoning: { effort: 'low' },        // ...but ask them not to
+            messages: [
+              { role: 'system', content: RUBRIC },
+              { role: 'user', content: user },
+            ],
+          }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const errorType = classifyError(res.status, body);
+          if ((errorType === 'rate' || errorType === 'other') && attempt < 3) {
+            await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+            continue;
+          }
+          return { ok: false, errorType, error: `HTTP ${res.status}: ${JSON.stringify(body.error || body).slice(0, 200)}` };
         }
-        return { ok: false, errorType, error: `HTTP ${res.status}: ${JSON.stringify(body.error || body).slice(0, 200)}` };
+        const msg = (body.choices && body.choices[0] && body.choices[0].message) || {};
+        return { ok: true, text: msg.content || '', reasoning: msg.reasoning || '' };
+      } catch (e) {
+        if (attempt < 3) { await new Promise((r) => setTimeout(r, 800 * (attempt + 1))); continue; }
+        return { ok: false, errorType: 'network', error: String((e && e.message) || e) };
       }
-      const text = (body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.content) || '';
-      return { ok: true, text };
-    } catch (e) {
-      if (attempt === 0) { await new Promise((r) => setTimeout(r, 800)); continue; }
-      return { ok: false, errorType: 'network', error: String((e && e.message) || e) };
     }
+    return { ok: false, errorType: 'other', error: 'unreachable' };
+  } finally {
+    ungate();
   }
-  return { ok: false, errorType: 'other', error: 'unreachable' };
 }
 
 // One conversation as a compact card the model can judge.
@@ -110,7 +139,14 @@ async function compareCards(cardA, cardB) {
   const res = await callJev(`A:\n${cardA}\n\nB:\n${cardB}\n\nWhich belongs higher in the inbox? Reply A or B.`);
   if (!res.ok) return res;
   const t = (res.text || '').trim().toUpperCase();
-  const m = t.match(/\b([AB])\b/);
+  let m = t.match(/\b([AB])\b/);
+  if (!m && res.reasoning) {
+    // Content came back empty (all tokens spent reasoning): salvage an explicit
+    // verdict from the reasoning tail — only an unambiguous "answer ... A" form.
+    const r = res.reasoning.toUpperCase();
+    const all = [...r.matchAll(/ANSWER[^A-Z0-9]{0,12}([AB])\b/g)];
+    if (all.length) m = all[all.length - 1];
+  }
   if (!m) return { ok: false, errorType: 'parse', error: 'unparseable: ' + t.slice(0, 40) };
   return { ok: true, winner: m[1] };
 }

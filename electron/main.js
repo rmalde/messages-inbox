@@ -27,6 +27,8 @@ let aiGenBusy = false;        // guard against overlapping generation passes
 let rankBusy = false;         // a backlog merge sort is running
 let rankCooldownUntil = 0;    // back off ranking after billing/auth failures
 const rankCards = new Map();  // guid -> { forDate, card } comparison snippets
+let rankStats = { real: 0, fallback: 0 }; // per-run verdict accounting
+let rankBillingStrikes = 0;   // consecutive billing/auth failures (one blip must not poison a whole sort)
 let win;
 
 function createWindow() {
@@ -442,17 +444,25 @@ async function rankCardFor(c) {
 // Model comparison with recency fallback — a billing/auth failure cools the
 // whole ranker off instead of burning the queue on doomed calls.
 async function rankCompare(a, b) {
-  if (Date.now() < rankCooldownUntil) return a.lastDate >= b.lastDate ? 'A' : 'B';
+  if (Date.now() < rankCooldownUntil) { rankStats.fallback++; return a.lastDate >= b.lastDate ? 'A' : 'B'; }
   const [ca, cb] = [await rankCardFor(a), await rankCardFor(b)];
   const res = await rank.compareCards(ca, cb);
   if (!res.ok) {
+    aiStatus.lastRankError = res.errorType + ': ' + (res.error || '').slice(0, 160);
     if (res.errorType === 'billing' || res.errorType === 'auth' || res.errorType === 'nokey') {
-      rankCooldownUntil = Date.now() + 10 * 60 * 1000;
-      aiStatus.lastError = 'ranking: ' + res.error;
-      aiStatus.lastErrorType = res.errorType;
+      // Only a STREAK of billing/auth failures cools the ranker off — a single
+      // transient one mid-sort must not degrade hundreds of comparisons.
+      if (++rankBillingStrikes >= 3) {
+        rankCooldownUntil = Date.now() + 10 * 60 * 1000;
+        aiStatus.lastError = 'ranking: ' + res.error;
+        aiStatus.lastErrorType = res.errorType;
+      }
     }
+    rankStats.fallback++;
     return a.lastDate >= b.lastDate ? 'A' : 'B';
   }
+  rankBillingStrikes = 0;
+  rankStats.real++;
   return res.winner;
 }
 
@@ -461,12 +471,20 @@ async function runBacklogSort(convos) {
   if (rankBusy) return;
   rankBusy = true;
   const cooldownBefore = rankCooldownUntil;
+  rankStats = { real: 0, fallback: 0 };
   try {
     const list = convos.filter((c) => !c.archived && !c.lastFromMe);
     const sorted = await rank.mergeSort(list, rankCompare);
-    // If billing died mid-sort the result is part-recency garbage — don't
-    // persist it as "backfilled"; retry wholesale once the cooldown lifts.
-    if (rankCooldownUntil > cooldownBefore) return;
+    aiStatus.rankStats = { ...rankStats, at: Date.now() };
+    // A sort polluted by failures (billing abort, or >10% silent fallbacks from
+    // rate limits etc.) is not the real ranking — don't persist it; retry after
+    // a pause instead of hot-looping.
+    const polluted = rankCooldownUntil > cooldownBefore ||
+      rankStats.fallback > Math.max(2, (rankStats.real + rankStats.fallback) * 0.1);
+    if (polluted) {
+      rankCooldownUntil = Math.max(rankCooldownUntil, Date.now() + 2 * 60 * 1000);
+      return;
+    }
     const pr = aiStore.getPriority();
     pr.order = sorted.map((c) => c.guid);
     pr.byGuid = {};
