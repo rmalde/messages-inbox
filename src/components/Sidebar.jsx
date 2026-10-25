@@ -29,7 +29,7 @@ function DraftChip() {
 
 export default function Sidebar({
   conversations, filter, setFilter, search, setSearch,
-  selectedGuid, onSelect, onArchive, onUnarchive, onOpenPrompts, counts, aiBusy,
+  selectedGuid, onSelect, onArchive, onUnarchive, onOpenPrompts, onOpenSettings, counts, aiBusy,
 }) {
   // Incrementally reveal rows as the user scrolls so an archive of 1000+
   // conversations doesn't mount (and fire a contact-photo lookup) all at once.
@@ -66,6 +66,12 @@ export default function Sidebar({
     <div className="sidebar">
       <div className="sidebar-bar">
         <span className="spacer" />
+        <button className="bar-btn" title="Settings (⌘,)" onClick={onOpenSettings}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3.1" />
+            <path d="M19.1 12a7.1 7.1 0 0 0 -.08 -1.05 l2.05 -1.58 -1.95 -3.38 -2.42 .98 a7.1 7.1 0 0 0 -1.82 -1.05 L14.5 3.4 h-5 l-.38 2.52 a7.1 7.1 0 0 0 -1.82 1.05 l-2.42 -.98 -1.95 3.38 2.05 1.58 a7.1 7.1 0 0 0 0 2.1 l-2.05 1.58 1.95 3.38 2.42 -.98 a7.1 7.1 0 0 0 1.82 1.05 l.38 2.52 h5 l.38 -2.52 a7.1 7.1 0 0 0 1.82 -1.05 l2.42 .98 1.95 -3.38 -2.05 -1.58 a7.1 7.1 0 0 0 .08 -1.05 Z" />
+          </svg>
+        </button>
         <button className={'bar-btn ai-btn' + (aiBusy ? ' reflecting' : '')} title={aiBusy ? 'AI is updating its style guide…' : 'AI style & prompt evolution'} onClick={onOpenPrompts}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 3.2 L13.9 9 a1 1 0 0 0 .64 .64 L20.3 11.5 a0.55 0.55 0 0 1 0 1 L14.54 14.36 a1 1 0 0 0 -.64 .64 L12 20.8 a0.55 0.55 0 0 1 -1 0 L9.46 15 a1 1 0 0 0 -.64 -.64 L3.7 12.5 a0.55 0.55 0 0 1 0 -1 L9.46 9.64 a1 1 0 0 0 .64 -.64 L11 3.2 a0.55 0.55 0 0 1 1 0 Z" transform="translate(-1.2 1.2) scale(0.92)" />

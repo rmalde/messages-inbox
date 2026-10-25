@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Sidebar from './components/Sidebar';
 import Thread from './components/Thread';
 import PromptHistory from './components/PromptHistory';
+import Settings from './components/Settings';
 
 const CONVO_POLL = 4000;
 const MSG_POLL = 3000;
@@ -32,6 +33,7 @@ export default function App() {
   const [toast, setToast] = useState(null); // {text, onUndo}
   const [draft, setDraft] = useState(null); // AI draft text for the open chat
   const [showPrompts, setShowPrompts] = useState(false); // prompt-history overlay
+  const [showSettings, setShowSettings] = useState(false); // settings overlay (⌘,)
   const [aiBusy, setAiBusy] = useState(false); // a reflection is running
 
   // Light poll so the sidebar sparkle can breathe while the AI reflects.
@@ -306,6 +308,7 @@ export default function App() {
       window.api.on('nav', (dir) => navStep(dir)),
       window.api.on('open-in-messages', () => openInMessages(selectedRef.current)),
       window.api.on('toggle-turn', () => toggleTurn()),
+      window.api.on('open-settings', () => setShowSettings((v) => !v)),
     ];
     return () => offs.forEach((off) => off && off());
   }, [archive, refreshConvos]);
@@ -440,7 +443,7 @@ export default function App() {
       {/* Geometric drag region across the whole top bar; interactive controls
           (buttons, search, tabs) carve themselves out via no-drag. */}
       <div className="drag-bar" />
-      <Sidebar
+      <Sidebar onOpenSettings={() => setShowSettings(true)}
         conversations={visible}
         filter={filter}
         setFilter={setFilter}
@@ -484,6 +487,7 @@ export default function App() {
         </div>
       )}
       {showPrompts && <PromptHistory onClose={() => setShowPrompts(false)} />}
+      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

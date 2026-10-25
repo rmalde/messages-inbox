@@ -70,7 +70,22 @@ function buildMenu() {
   const isMac = process.platform === 'darwin';
   const template = [
     ...(isMac
-      ? [{ role: 'appMenu' }]
+      ? [{
+          label: app.name,
+          submenu: [
+            { role: 'about' },
+            { type: 'separator' },
+            {
+              label: 'Settings…',
+              accelerator: 'CmdOrCtrl+,',
+              click: () => win && win.webContents.send('open-settings'),
+            },
+            { type: 'separator' },
+            { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' },
+            { type: 'separator' },
+            { role: 'quit' },
+          ],
+        }]
       : []),
     { role: 'editMenu' },
     {
@@ -255,6 +270,12 @@ async function captureArchiveSignal(guid) {
   }
 }
 
+ipcMain.handle('settings:get', async () => store.getSettings());
+ipcMain.handle('settings:set', async (_e, { key, value }) => {
+  store.setSetting(key, value);
+  return store.getSettings();
+});
+
 ipcMain.handle('chat:setTurn', async (_e, { guid, section, forDate }) => {
   // section null clears the override (back to natural placement)
   if (section) store.setTurnOverride(guid, section, forDate);
@@ -366,8 +387,9 @@ async function aiTick() {
   //    replies (last message is theirs) AND continuations (Ronak just texted and
   //    may be mid-burst). Throttled + guarded; backs off while the API is down.
   if (aiGenBusy || now - aiLastGenAt < GEN_EVERY_MS || now < aiDraftCooldownUntil) return;
+  const autoDraft = store.getSettings().autoDraft !== false; // default on
   const cutoff = now - DRAFT_WINDOW_MS;
-  const needsDraft = convos.filter((c) => {
+  const needsDraft = !autoDraft ? [] : convos.filter((c) => {
     if (c.archived || c.lastDate < cutoff) return false;
     // Only draft a continuation shortly after Ronak's own message (rapid-fire
     // window); otherwise he's done and it's their turn — no continuation.
@@ -378,8 +400,6 @@ async function aiTick() {
     if (s && s.forDate === c.lastDate) return false;   // already judged: no message
     return true;
   });
-  if (!needsDraft.length) return;
-
   aiGenBusy = true;
   aiLastGenAt = now;
   try {

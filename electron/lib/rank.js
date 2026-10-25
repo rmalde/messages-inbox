@@ -182,4 +182,4 @@ async function binaryInsertIndex(ranked, candidate, cmp) {
   return lo;
 }
 
-module.exports = { hasKey, buildCard, compareCards, mergeSort, binaryInsertIndex, RANK_MODEL };
+module.exports = { hasKey, getKey, buildCard, compareCards, mergeSort, binaryInsertIndex, RANK_MODEL };

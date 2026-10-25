@@ -4,73 +4,60 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
-const DRAFT_MODEL = 'claude-haiku-4-5-20251001';
-const REFLECT_MODEL = 'claude-opus-4-8';
+// All model calls go through OpenRouter (the Anthropic key is capped until
+// Nov 1; the Trajectory org OpenRouter key carries the same Claude models).
+const rank = require('./rank');
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const DRAFT_MODEL = 'anthropic/claude-haiku-4.5';
+const REFLECT_MODEL = 'anthropic/claude-opus-4.8';
 
-// Resolve the API key. A Finder-launched app doesn't inherit shell exports, so
-// fall back to parsing the user's shell rc files.
-let cachedKey;
-function keyFilePaths() {
-  const base = path.join(os.homedir(), 'Library', 'Application Support');
-  return ['Messages Inbox', 'messages-inbox'].map((d) => path.join(base, d, 'anthropic-key'));
-}
-function getApiKey() {
-  if (cachedKey !== undefined) return cachedKey;
-  if (process.env.ANTHROPIC_API_KEY) { cachedKey = process.env.ANTHROPIC_API_KEY; return cachedKey; }
-  // A dedicated, gitignored key file takes priority over shell rc files so the
-  // app can use a key without touching the user's shell config.
-  for (const f of keyFilePaths()) {
-    try {
-      const k = fs.readFileSync(f, 'utf8').trim();
-      if (k) { cachedKey = k; return cachedKey; }
-    } catch { /* missing */ }
-  }
-  const files = ['.zshrc', '.zprofile', '.zshenv', '.bash_profile', '.profile'].map((f) => path.join(os.homedir(), f));
-  for (const f of files) {
-    try {
-      const m = fs.readFileSync(f, 'utf8').match(/ANTHROPIC_API_KEY\s*=\s*"?([^"\n]+)"?/);
-      if (m) { cachedKey = m[1].trim(); return cachedKey; }
-    } catch { /* missing file */ }
-  }
-  cachedKey = null;
-  return cachedKey;
-}
-
+function getApiKey() { return rank.getKey(); }
 function hasKey() { return !!getApiKey(); }
 
 function classifyError(status, body) {
-  const msg = (body && body.error && body.error.message) || '';
+  const msg = (body && body.error && (body.error.message || JSON.stringify(body.error))) || '';
+  if (status === 402) return 'billing';
   if (/credit balance|too low|billing|usage limits|spend limit/i.test(msg)) return 'billing';
   if (status === 401 || /authentication|invalid x-api-key/i.test(msg)) return 'auth';
   if (status === 429 || /rate limit/i.test(msg)) return 'rate';
   return 'other';
 }
 
-async function callAnthropic({ model, system, messages, max_tokens = 400, temperature, tools, tool_choice }) {
+async function callAnthropic({ model, system, messages, max_tokens = 400, temperature, tools }) {
   const key = getApiKey();
-  if (!key) return { ok: false, errorType: 'nokey', error: 'No API key found' };
+  if (!key) return { ok: false, errorType: 'nokey', error: 'No OpenRouter key found' };
   try {
-    const reqBody = { model, max_tokens, system, messages };
-    if (temperature != null) reqBody.temperature = temperature; // some models reject it
-    if (tools) reqBody.tools = tools;
-    if (tool_choice) reqBody.tool_choice = tool_choice;
+    const reqBody = {
+      model,
+      max_tokens,
+      messages: [{ role: 'system', content: system }, ...messages],
+    };
+    if (temperature != null) reqBody.temperature = temperature;
+    // Anthropic-shaped tool defs -> OpenAI shape OpenRouter expects.
+    if (tools) {
+      reqBody.tools = tools.map((t) => ({
+        type: 'function',
+        function: { name: t.name, description: t.description, parameters: t.input_schema },
+      }));
+    }
     const res = await fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
+      headers: { authorization: 'Bearer ' + key, 'content-type': 'application/json' },
       body: JSON.stringify(reqBody),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return { ok: false, errorType: classifyError(res.status, body), error: (body.error && body.error.message) || `HTTP ${res.status}` };
+      return { ok: false, errorType: classifyError(res.status, body), error: (body.error && (body.error.message || JSON.stringify(body.error))) || `HTTP ${res.status}` };
     }
-    const blocks = body.content || [];
-    const text = blocks.filter((c) => c.type === 'text').map((c) => c.text).join('').trim();
-    const toolUse = blocks.find((c) => c.type === 'tool_use') || null;
+    const msg = (body.choices && body.choices[0] && body.choices[0].message) || {};
+    const text = typeof msg.content === 'string' ? msg.content.trim() : '';
+    let toolUse = null;
+    const tc = msg.tool_calls && msg.tool_calls[0];
+    if (tc && tc.function) {
+      let input = {};
+      try { input = JSON.parse(tc.function.arguments || '{}'); } catch { /* malformed args */ }
+      toolUse = { name: tc.function.name, input };
+    }
     return { ok: true, text, toolUse };
   } catch (e) {
     return { ok: false, errorType: 'network', error: String((e && e.message) || e) };

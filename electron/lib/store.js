@@ -130,6 +130,15 @@ class Store {
     this._mutate(() => { this._rec(guid).lastOpenedAt = now; });
   }
 
+  // App settings (small key-value map; agent-editable like everything else).
+  getSettings() { return this.data.settings || {}; }
+  setSetting(key, value) {
+    this._mutate(() => {
+      if (!this.data.settings) this.data.settings = {};
+      this.data.settings[key] = value;
+    });
+  }
+
   // Manual section override (⌘⇧D): pin the conversation to 'theirs' or
   // 'inbox' regardless of who spoke last. Keyed to the conversation's current
   // last-message date, so ANY new message dissolves it back to natural
