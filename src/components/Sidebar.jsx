@@ -116,7 +116,7 @@ export default function Sidebar({
             <Avatar name={c.name} handle={c.isGroup ? undefined : c.identifier} isGroup={c.isGroup} participants={c.participants} />
             <div className="convo-body">
               <div className="convo-row1">
-                <span className="convo-name">{sidebarTitle(c.name, c.isGroup)}</span>
+                <span className="convo-name">{c.isGroup ? sidebarTitle(c.name, true) : c.name}</span>
                 <span className="convo-time">{listTime(c.lastDate)}</span>
               </div>
               <div className="convo-preview">{c.hasDraft && <DraftChip />}{preview(c)}</div>
