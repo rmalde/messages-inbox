@@ -13,7 +13,7 @@ function Toggle({ on, onChange }) {
   );
 }
 
-export default function Settings({ onClose }) {
+export default function Settings({ onClose, onOpenPrompts }) {
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -53,6 +53,14 @@ export default function Settings({ onClose }) {
             <div className="setting-desc">Draft replies to incoming messages in the background</div>
           </div>
           <Toggle on={autoDraft} onChange={(v) => set('autoDraft', v)} />
+        </div>
+
+        <div className="setting-row">
+          <div className="setting-text">
+            <div className="setting-name">AI style guide</div>
+            <div className="setting-desc">Prompt evolution history and recent edits</div>
+          </div>
+          <button className="setting-link" onClick={onOpenPrompts}>View</button>
         </div>
       </div>
     </div>

@@ -295,6 +295,7 @@ export default function App() {
   useEffect(() => {
     const offs = [
       window.api.on('archive-current', () => {
+        if (selectedRef.current && selectedRef.current.archived) { unarchive(selectedRef.current); return; }
         const c = selectedRef.current;
         if (c) archive(c);
       }),
@@ -311,7 +312,7 @@ export default function App() {
       window.api.on('open-settings', () => setShowSettings((v) => !v)),
     ];
     return () => offs.forEach((off) => off && off());
-  }, [archive, refreshConvos]);
+  }, [archive, unarchive, refreshConvos, openInMessages, toggleTurn]);
 
   // keep selectedRef current for the menu handlers
   useEffect(() => { selectedRef.current = selected; }, [selected]);
@@ -470,8 +471,8 @@ export default function App() {
       ) : (
         <div className="main">
           <div className="no-chat">
-            <svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3.6 c-5.2 0 -9.2 3.4 -9.2 7.7 c0 2.2 1.05 4.15 2.75 5.55 c-.2 1.15 -.75 2.2 -1.6 3.05 c-.25 .25 -.05 .7 .3 .65 c1.75 -.2 3.3 -.85 4.5 -1.7 c1.02 .3 2.12 .45 3.25 .45 c5.2 0 9.2 -3.4 9.2 -7.7 s-4 -7.6 -9.2 -7.6 Z" />
+            <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 4.4 c4.9 0 8.7 3.05 8.7 7 S16.9 18.4 12 18.4 c-1.06 0 -2.08 -.15 -3.02 -.43 c-1.18 .82 -2.67 1.42 -4.35 1.6 c-.35 .04 -.53 -.39 -.3 -.64 c.75 -.8 1.28 -1.72 1.5 -2.78 C4.2 14.9 3.3 13.25 3.3 11.4 C3.3 7.45 7.1 4.4 12 4.4 Z" />
             </svg>
             <div className="nc-title">No Conversation Selected</div>
             <div className="nc-sub">Choose a conversation from the list to read and reply.</div>
@@ -487,7 +488,7 @@ export default function App() {
         </div>
       )}
       {showPrompts && <PromptHistory onClose={() => setShowPrompts(false)} />}
-      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
+      {showSettings && <Settings onClose={() => setShowSettings(false)} onOpenPrompts={() => { setShowSettings(false); setShowPrompts(true); }} />}
     </div>
   );
 }

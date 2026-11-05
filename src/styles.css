@@ -192,10 +192,10 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 
 .sidebar-bar {
   -webkit-app-region: drag;
-  height: 50px;
+  height: 52px;
   display: flex;
   align-items: center;
-  padding: 0 10px 0 76px;
+  padding: 0 10px 0 78px; /* tabs sit on the traffic-light row */
   gap: 2px;
 }
 .sidebar-bar .spacer { flex: 1; }
@@ -240,7 +240,6 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 .segmented {
   -webkit-app-region: no-drag;
   display: flex; gap: 4px;
-  margin: 2px 14px 8px;
   height: 28px;
   align-items: center;
 }
@@ -342,21 +341,6 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   overflow: hidden; line-height: 16px; max-height: 32px;
 }
 
-.row-archive {
-  position: absolute; right: 8px; top: 50%;
-  width: 27px; height: 27px; border-radius: 50%; border: none;
-  background: var(--mat-thick);
-  -webkit-backdrop-filter: var(--blur-thin); backdrop-filter: var(--blur-thin);
-  color: var(--text-secondary);
-  display: flex; align-items: center; justify-content: center; cursor: default;
-  box-shadow: inset 0 0.5px 0 var(--edge-light), var(--shadow-chip);
-  opacity: 0; transform: translateY(-50%) scale(0.9); pointer-events: none;
-  transition: opacity 0.12s ease, transform 0.14s var(--ease-out), color 0.12s ease;
-}
-.convo:hover .row-archive { opacity: 1; transform: translateY(-50%) scale(1); pointer-events: auto; }
-.row-archive:hover { color: var(--text); }
-.row-archive:active { transform: translateY(-50%) scale(0.94); }
-.convo.selected .row-archive { background: rgba(255, 255, 255, 0.25); color: #fff; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 .empty-list { text-align: center; color: var(--text-secondary); padding: 56px 20px; font-size: var(--t-sub); }
 
@@ -714,8 +698,6 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 /* ===================== AI drafting ===================== */
 .draft-chip { color: var(--blue); font-weight: 590; }
 
-.ai-btn.reflecting svg { animation: aiPulse 1.4s ease-in-out infinite; }
-@keyframes aiPulse { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
 
 /* ===================== Settings (⌘,) ===================== */
 .settings-panel {
@@ -738,6 +720,15 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 .setting-row + .setting-row { border-top: 1px solid var(--separator); }
 .setting-name { font-size: 13px; font-weight: 590; letter-spacing: 0; }
 .setting-desc { font-size: var(--t-sub); color: var(--text-secondary); margin-top: 2px; }
+
+.setting-link {
+  border: none; background: var(--field); color: var(--text);
+  font-size: 12px; font-weight: 590; letter-spacing: 0;
+  padding: 5px 12px; border-radius: 13px; cursor: default;
+  transition: background 0.14s ease, transform 0.14s var(--ease-out);
+}
+.setting-link:hover { background: var(--press); }
+.setting-link:active { transform: scale(0.97); }
 
 /* Toggle — iOS switch: track morphs, knob glides ease-in-out, press squishes */
 .toggle {

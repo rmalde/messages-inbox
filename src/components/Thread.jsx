@@ -127,31 +127,6 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
               </svg>
             </button>
           )}
-          <button
-            className="icon-btn"
-            title="Open in Messages (⌘⇧A)"
-            onClick={() => onOpenInMessages(convo)}
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 4.6 c4.6 0 8.1 2.85 8.1 6.55 S16.6 17.7 12 17.7 c-1 0 -1.95 -.14 -2.83 -.4 c-1.1 .76 -2.5 1.33 -4.07 1.5 c-.33 .04 -.5 -.36 -.28 -.6 c.7 -.74 1.2 -1.6 1.4 -2.6 C4.75 14.4 3.9 12.85 3.9 11.15 C3.9 7.45 7.4 4.6 12 4.6 Z" />
-            </svg>
-          </button>
-          {convo.archived ? (
-            <button className="icon-btn" onClick={() => onUnarchive(convo)} title="Move to Inbox">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 14 v4.4 A1.6 1.6 0 0 0 5.6 20 h12.8 a1.6 1.6 0 0 0 1.6 -1.6 V14" />
-                <path d="M12 14.5 V4.5 M8 8.2 L12 4.2 L16 8.2" />
-              </svg>
-            </button>
-          ) : (
-            <button className="icon-btn" onClick={() => onArchive(convo)} title="Archive (⌘⇧E)">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="4.6" rx="1.2" />
-                <path d="M5 8.6 V18.4 a1.6 1.6 0 0 0 1.6 1.6 h10.8 a1.6 1.6 0 0 0 1.6 -1.6 V8.6" />
-                <line x1="10" y1="12.6" x2="14" y2="12.6" />
-              </svg>
-            </button>
-          )}
         </div>
       </div>
 
