@@ -65,9 +65,9 @@ export default function Sidebar({
         </div>
         <span className="spacer" />
         <button className="bar-btn" title="New Message (opens Messages)" onClick={() => window.api.openExternal('imessage://')}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14.6 5.4 H7 A2.6 2.6 0 0 0 4.4 8 v9 A2.6 2.6 0 0 0 7 19.6 h9 a2.6 2.6 0 0 0 2.6 -2.6 V9.4" />
-            <path d="M17.9 3.5 a1.85 1.85 0 0 1 2.6 2.6 L12.6 14 l-3.4 .8 .8 -3.4 Z" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12.9 5.4 H7.3 C5.7 5.4 4.4 6.7 4.4 8.3 v 8.4 c0 1.6 1.3 2.9 2.9 2.9 h 8.4 c1.6 0 2.9 -1.3 2.9 -2.9 V 11.1" />
+            <path d="M19.8 4.2 a1.85 1.85 0 0 0 -2.6 0 L10.55 10.85 a1 1 0 0 0 -.26 .45 l-.79 3.2 3.2 -.79 a1 1 0 0 0 .45 -.26 L19.8 6.8 a1.85 1.85 0 0 0 0 -2.6 Z" />
           </svg>
         </button>
       </div>
