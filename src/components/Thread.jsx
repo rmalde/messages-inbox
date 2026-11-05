@@ -2,13 +2,14 @@ import React, { useRef, useLayoutEffect, useEffect, useState } from 'react';
 import Avatar from './Avatar';
 import Bubble from './Bubble';
 import Composer from './Composer';
+import { BellSlashGlyph } from './MuteGlyphs';
 import { daySeparator, shouldSeparate, sidebarTitle } from '../lib/format';
 
 function sameRun(a, b) {
   return a && b && a.fromMe === b.fromMe && a.sender === b.sender && !shouldSeparate(a.date, b.date);
 }
 
-export default function Thread({ convo, messages, draft, onArchive, onUnarchive, onSend, onOpenInMessages }) {
+export default function Thread({ convo, messages, draft, onArchive, onUnarchive, onMute, onUnmute, onSend, onOpenInMessages }) {
   const scrollRef = useRef(null);
   const lastId = useRef(null);          // id of the last rendered message
   const scrolledGuid = useRef(null);    // guid we've already pinned to bottom
@@ -130,7 +131,15 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
         </div>
       </div>
 
-      <div className="messages" ref={scrollRef} onScroll={onScroll}>
+      {convo.muted && (
+        <div className="mute-banner">
+          <BellSlashGlyph size={13} strokeWidth={2} />
+          <span>Muted — new messages stay in Archived</span>
+          <button onClick={() => onUnmute(convo)}>Unmute</button>
+        </div>
+      )}
+
+      <div className={'messages' + (convo.muted ? ' has-banner' : '')} ref={scrollRef} onScroll={onScroll}>
         {messages.map((m, i) => {
           const prev = messages[i - 1];
           const next = messages[i + 1];

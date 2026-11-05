@@ -244,7 +244,9 @@ export default function App() {
 
 
   const archive = useCallback(async (c) => {
-    if (!c) return;
+    // Already archived for good; re-archiving would only arm an Undo that
+    // (via unarchive) would silently unmute it.
+    if (!c || c.muted) return;
     // Pick the next OLDER conversation (the one below); fall back to the one
     // above only when archiving the bottom of the list.
     const cur = visibleRef.current;
@@ -274,6 +276,49 @@ export default function App() {
     await refreshConvos();
   }, [refreshConvos]);
 
+  // Mute = an archive that new messages can't undo. It leaves the Inbox exactly
+  // like archiving does, and the toast says where it went and offers Undo.
+  const mute = useCallback(async (c) => {
+    if (!c || c.muted) return;
+    const wasInInbox = !c.archived;
+    const cur = visibleRef.current;
+    const idx = cur.findIndex((x) => x.guid === c.guid);
+    const neighborGuid = cur[idx + 1] ? cur[idx + 1].guid : (idx > 0 ? cur[idx - 1].guid : null);
+    const neighbor = neighborGuid ? cur.find((x) => x.guid === neighborGuid) : null;
+    setConvos((prev) => prev.map((x) => (x.guid === c.guid ? { ...x, archived: true, muted: true } : x)));
+    if (filter === 'inbox' && wasInInbox) {
+      if (neighbor) selectConvo(neighbor);
+      else { setSelectedGuid(null); setMessages([]); }
+    }
+    window.api.mute(c.guid).then(() => refreshConvos());
+    showToast(
+      wasInInbox
+        ? 'Muted — moved to Archived. New messages won’t bring it back.'
+        : 'Muted — new messages won’t bring it back to the Inbox.',
+      async () => {
+        // Unmuting alone restores its prior state: mute never touched archivedAt.
+        await window.api.unmute(c.guid);
+        await refreshConvos();
+        if (filter === 'inbox' && wasInInbox) selectConvo(c);
+        setToast(null);
+      }
+    );
+  }, [refreshConvos, filter, selectConvo, showToast]);
+
+  // Unmute sends it back to the Inbox (same as Move to Inbox), with an Undo
+  // that mutes it again.
+  const unmute = useCallback(async (c) => {
+    if (!c || !c.muted) return;
+    setConvos((prev) => prev.map((x) => (x.guid === c.guid ? { ...x, archived: false, muted: false } : x)));
+    await window.api.unarchive(c.guid);
+    await refreshConvos();
+    showToast('Unmuted — moved back to the Inbox.', async () => {
+      await window.api.mute(c.guid);
+      await refreshConvos();
+      setToast(null);
+    });
+  }, [refreshConvos, showToast]);
+
   const send = useCallback(async (c, text) => {
     setDraft(null); // sending consumes the draft
     const opt = { id: -Date.now(), guid: 'opt-' + Date.now(), date: Date.now(), fromMe: true, text, service: c.service, sender: 'Me', attachments: [], reactions: [], pending: true };
@@ -299,6 +344,10 @@ export default function App() {
         const c = selectedRef.current;
         if (c) archive(c);
       }),
+      window.api.on('mute-current', () => {
+        const c = selectedRef.current;
+        if (c) (c.muted ? unmute : mute)(c);
+      }),
       window.api.on('toggle-archived-view', () => {
         setFilter((f) => (f === 'inbox' ? 'archived' : 'inbox'));
       }),
@@ -312,7 +361,7 @@ export default function App() {
       window.api.on('open-settings', () => setShowSettings((v) => !v)),
     ];
     return () => offs.forEach((off) => off && off());
-  }, [archive, unarchive, refreshConvos, openInMessages, toggleTurn]);
+  }, [archive, unarchive, mute, unmute, refreshConvos, openInMessages, toggleTurn]);
 
   // keep selectedRef current for the menu handlers
   useEffect(() => { selectedRef.current = selected; }, [selected]);
@@ -408,6 +457,7 @@ export default function App() {
     inbox: convos.filter((c) => !c.archived).length,
     unread: convos.filter((c) => !c.archived && c.unread).length,
     archived: convos.filter((c) => c.archived).length,
+    muted: convos.filter((c) => c.muted).length,
   }), [convos]);
 
   if (accessError && accessError.needsAccess && convos.length === 0) {
@@ -454,6 +504,7 @@ export default function App() {
         onSelect={selectConvo}
         onArchive={archive}
         onUnarchive={unarchive}
+        onUnmute={unmute}
         onOpenPrompts={() => setShowPrompts(true)}
         aiBusy={aiBusy}
         counts={counts}
@@ -465,6 +516,8 @@ export default function App() {
           draft={draft}
           onArchive={archive}
           onUnarchive={unarchive}
+          onMute={mute}
+          onUnmute={unmute}
           onSend={send}
           loading={false}
         />

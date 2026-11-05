@@ -7,6 +7,7 @@ const os = require('os');
 
 const db = require('./lib/db');
 const { Store } = require('./lib/store');
+const { ensureFreshRenderer } = require('./lib/renderer-build');
 const { sendMessage, revealGroupByName } = require('./lib/send');
 const { getContactImage } = require('./lib/contacts');
 const { AiStore, REFLECT_EVERY } = require('./lib/aistore');
@@ -98,6 +99,12 @@ function buildMenu() {
           click: () => win && win.webContents.send('archive-current'),
         },
         {
+          // Toggles: on a muted conversation the same shortcut unmutes it.
+          label: 'Mute / Unmute Conversation',
+          accelerator: 'CmdOrCtrl+Shift+M',
+          click: () => win && win.webContents.send('mute-current'),
+        },
+        {
           label: 'Mark Read',
           accelerator: 'CmdOrCtrl+Shift+R',
           click: () => win && win.webContents.send('mark-read-current'),
@@ -136,7 +143,7 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   store = new Store(path.join(app.getPath('userData'), 'inbox-store.json'));
   store.onExternalChange = () => { if (win) win.webContents.send('ai-changed'); };
   aiStore = new AiStore(app.getPath('userData'));
@@ -148,6 +155,14 @@ app.whenReady().then(() => {
     if (app.dock && fs.existsSync(iconPath)) app.dock.setIcon(iconPath);
   } catch { /* ignore */ }
   buildMenu();
+  // A git pull may have brought renderer changes the launcher couldn't build
+  // (see lib/renderer-build.js). Build them now, before the window loads.
+  if (!process.env.VITE_DEV) {
+    await ensureFreshRenderer(
+      path.join(__dirname, '..'),
+      path.join(app.getPath('userData'), 'renderer-build.log')
+    );
+  }
   createWindow();
 
   // AI drafting loop — generate drafts for today's awaiting-reply chats and
@@ -286,6 +301,20 @@ ipcMain.handle('chat:setTurn', async (_e, { guid, section, forDate }) => {
 
 ipcMain.handle('chat:unarchive', async (_e, guid) => {
   store.unarchive(guid);
+  return true;
+});
+
+// Mute = an archive that new messages can't undo. Like archiving it's a
+// decision not to reply, so it carries the same learning signal.
+ipcMain.handle('chat:mute', async (_e, guid) => {
+  store.mute(guid, Date.now());
+  captureArchiveSignal(guid);
+  if (aiStore) aiStore.clearUrgent(guid);
+  return true;
+});
+
+ipcMain.handle('chat:unmute', async (_e, guid) => {
+  store.unmute(guid);
   return true;
 });
 

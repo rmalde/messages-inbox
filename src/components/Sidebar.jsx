@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
+import { BellGlyph, BellSlashGlyph } from './MuteGlyphs';
 import { listTime, sidebarTitle } from '../lib/format';
 
 const PAGE = 50; // rows rendered per chunk — keeps huge archives from mounting at once
@@ -18,7 +19,7 @@ function DraftChip() {
 
 export default function Sidebar({
   conversations, filter, setFilter, search, setSearch,
-  selectedGuid, onSelect, onArchive, onUnarchive, onOpenPrompts, onOpenSettings, counts, aiBusy,
+  selectedGuid, onSelect, onArchive, onUnarchive, onUnmute, onOpenPrompts, onOpenSettings, counts, aiBusy,
 }) {
   // Incrementally reveal rows as the user scrolls so an archive of 1000+
   // conversations doesn't mount (and fire a contact-photo lookup) all at once.
@@ -117,6 +118,11 @@ export default function Sidebar({
             <div className="convo-body">
               <div className="convo-row1">
                 <span className="convo-name">{c.isGroup ? sidebarTitle(c.name, true) : c.name}</span>
+                {c.muted && (
+                  <span className="muted-mark" title="Muted — new messages stay in Archived">
+                    <BellSlashGlyph size={12} strokeWidth={2.2} />
+                  </span>
+                )}
                 <span className="convo-time">{listTime(c.lastDate)}</span>
               </div>
               <div className="convo-preview">{c.hasDraft && <DraftChip />}{preview(c)}</div>
@@ -129,7 +135,7 @@ export default function Sidebar({
       <div className="list-footer">
         {filter === 'inbox'
           ? `${counts.inbox.toLocaleString()} conversation${counts.inbox === 1 ? '' : 's'}${counts.unread ? ` · ${counts.unread} unread` : ''}`
-          : `${counts.archived.toLocaleString()} archived`}
+          : `${counts.archived.toLocaleString()} archived${counts.muted ? ` · ${counts.muted.toLocaleString()} muted` : ''}`}
       </div>
     </div>
   );

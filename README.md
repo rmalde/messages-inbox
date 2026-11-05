@@ -17,9 +17,15 @@ anywhere; everything runs on your machine.
   archive it. Archiving is *email semantics*: a thread stays in the Inbox even
   after you reply — it only leaves when **you** archive it, and it
   **automatically returns to the Inbox the moment someone sends a new message**.
+- **Mute:** `⌘⇧M` (or the bell button in the conversation header) archives a
+  conversation for good — new messages **don't** bring it back to the Inbox.
+  Muted threads keep a bell-slash mark in Archived and show a **Muted** banner
+  with an **Unmute** button; the toast after muting has **Undo**, and `⌘⇧M`
+  again moves it back to the Inbox. This is the app's own mute: it doesn't
+  change Hide Alerts in Messages, so notifications still arrive as before.
 - **Archive shortcut:** `⌘⇧E` (Conversation → Archive Conversation).
-  - `⌘⇧A` toggle Inbox/Archived view · `⌘⇧R` mark read · `⌘↑/⌘↓` move between
-    conversations.
+  - `⌘⇧M` mute / unmute · `⌘⇧A` toggle Inbox/Archived view · `⌘⇧R` mark read ·
+    `⌘↑/⌘↓` move between conversations.
 - **Full iMessage-style UI:** blue/green/gray bubbles, tapback reactions,
   reply quoting, inline image attachments, day/time separators, group sender
   labels, unread dots, emoji picker, send/appear animations.
@@ -33,8 +39,9 @@ anywhere; everything runs on your machine.
   writes to Apple's database.**
 - **Sending:** via AppleScript (`osascript`) to the existing chat — the same
   channel Messages.app uses. Works for iMessage and SMS, 1:1 and groups.
-- **Archive / read state:** stored separately in a small JSON file in the app's
-  userData dir, keyed by chat GUID. Your real Messages app is untouched.
+- **Archive / mute / read state:** stored separately in a small JSON file in
+  the app's userData dir, keyed by chat GUID. Your real Messages app is
+  untouched.
 
 ## Run it (development)
 
@@ -57,6 +64,12 @@ latest source, rebuilds the renderer, then runs it. Because the *bundle* never
 changes, you grant **Full Disk Access once** and it persists across every future
 update. First launch shows a guided "Full Disk Access" screen if needed — add
 `/Applications/Messages Inbox.app` and toggle it on.
+
+If the launcher can't rebuild the renderer itself (it looks for Node at a fixed
+path, which isn't there when Node comes from nvm), the app does it on startup
+with the Node built into Electron, so updates always show up. If a build ever
+fails, the details are in `~/Library/Application Support/Messages
+Inbox/renderer-build.log`.
 
 Requires the repo to stay at `~/tech/messages-inbox`. Re-run `make-app` only if
 the Electron version itself is upgraded.
@@ -92,7 +105,8 @@ electron/
     db.js              chat.db queries -> conversations & messages
     attributedBody.js  decode message text from the binary blob
     contacts.js        best-effort name resolution from AddressBook
-    store.js           local archive + read-state (JSON)
+    store.js           local archive + mute + read-state (JSON)
+    renderer-build.js  rebuilds dist/ on launch when src/ is newer
     send.js            AppleScript send
     bin.js             absolute paths to system sqlite3 / osascript
 build/                 app icon (.icns) + entitlements for packaging

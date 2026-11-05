@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('api', {
   setTurn: (payload) => ipcRenderer.invoke('chat:setTurn', payload),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', { key, value }),
+  mute: (guid) => ipcRenderer.invoke('chat:mute', guid),
+  unmute: (guid) => ipcRenderer.invoke('chat:unmute', guid),
   send: (payload) => ipcRenderer.invoke('message:send', payload),
   attachment: (filePath) => ipcRenderer.invoke('attachment:data', filePath),
   isDark: () => ipcRenderer.invoke('theme:isDark'),
@@ -30,6 +32,7 @@ contextBridge.exposeInMainWorld('api', {
   on: (channel, cb) => {
     const allowed = [
       'archive-current',
+      'mute-current',
       'mark-read-current',
       'nav',
       'toggle-archived-view',
