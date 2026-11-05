@@ -37,7 +37,8 @@ function createWindow() {
     height: 800,
     minWidth: 720,
     minHeight: 500,
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 18, y: 20 }, // centers lights on the 52px tab bar
     vibrancy: 'under-window',
     visualEffectState: 'followWindow',
     backgroundColor: '#00000000',

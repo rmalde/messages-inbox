@@ -195,7 +195,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   height: 52px;
   display: flex;
   align-items: center;
-  padding: 0 10px 0 78px; /* tabs sit on the traffic-light row */
+  padding: 0 10px 0 94px; /* clear air after the traffic lights */
   gap: 2px;
 }
 .sidebar-bar .spacer { flex: 1; }
@@ -250,7 +250,10 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
   padding: 0 11px; height: 28px;
   border-radius: 14px;
   cursor: default;
-  display: flex; align-items: center; justify-content: center; gap: 5px;
+  /* baseline-align the label and its count so the number sits on the same
+     line as the text, not box-centered above it */
+  display: flex; align-items: baseline; justify-content: center; gap: 5px;
+  line-height: 27px;
   transition: background 0.16s ease, color 0.14s ease, transform 0.16s var(--ease-out);
 }
 .segmented button:active { transform: scale(0.97); color: var(--text); }
