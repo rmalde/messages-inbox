@@ -429,7 +429,7 @@ body.win-blurred .convo.selected .avatar.group .g-tile { box-shadow: 0 0 0 2px v
 }
 .day-sep b { font-weight: 600; color: var(--text-secondary); }
 
-.msg-row { position: relative; display: flex; flex-direction: column; margin-top: 2px; }
+.msg-row { position: relative; display: flex; flex-direction: column; margin-top: 3px; }
 .msg-row.mine { align-items: flex-end; }
 .msg-row.theirs { align-items: flex-start; }
 .msg-row.grp-start { margin-top: 11px; }
