@@ -22,21 +22,18 @@ export function bubbleTime(ms) {
 }
 
 export function daySeparator(ms) {
+  // Messages.app style: "Thu, Jun 4 at 12:58 PM" (bold date, regular time).
   const d = new Date(ms);
   const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
   const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  if (sameDay) return `Today ${time}`;
+  if (d.toDateString() === now.toDateString()) return `Today at ${time}`;
   const yest = new Date(now);
   yest.setDate(now.getDate() - 1);
-  if (d.toDateString() === yest.toDateString()) return `Yesterday ${time}`;
+  if (d.toDateString() === yest.toDateString()) return `Yesterday at ${time}`;
   const diffDays = (now - d) / 86400000;
-  if (diffDays < 7) {
-    return `${d.toLocaleDateString([], { weekday: 'long' })} ${time}`;
-  }
-  return d.toLocaleDateString([], {
-    weekday: 'short', month: 'short', day: 'numeric',
-  }) + `  ${time}`;
+  if (diffDays < 7) return `${d.toLocaleDateString([], { weekday: 'long' })} at ${time}`;
+  const date = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  return `${date} at ${time}`;
 }
 
 // Big gap between messages -> show a fresh day/time separator.

@@ -111,7 +111,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
               onClick={() => window.api.openExternal('facetime-audio://' + encodeURIComponent(convo.identifier))}
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6.6 3.8 L9 3.2 a1.2 1.2 0 0 1 1.35 .7 L11.5 6.7 a1.2 1.2 0 0 1 -.35 1.4 L9.6 9.4 a13.8 13.8 0 0 0 5 5 L16 12.85 a1.2 1.2 0 0 1 1.4 -.35 l2.8 1.15 a1.2 1.2 0 0 1 .7 1.35 L20.2 17.4 a2 2 0 0 1 -2 1.6 C10.6 19 5 13.4 5 5.8 a2 2 0 0 1 1.6 -2 Z" />
+                <path d="M7.8 3.6 l1.9 -.45 a1.3 1.3 0 0 1 1.5 .78 l1.05 2.7 a1.3 1.3 0 0 1 -.37 1.47 l-1.55 1.3 a12.9 12.9 0 0 0 4.27 4.27 l1.3 -1.55 a1.3 1.3 0 0 1 1.47 -.37 l2.7 1.05 a1.3 1.3 0 0 1 .78 1.5 l-.45 1.9 a2 2 0 0 1 -1.95 1.55 C11.3 17.75 6.25 12.7 6.25 5.55 a2 2 0 0 1 1.55 -1.95 Z" />
               </svg>
             </button>
           )}
@@ -122,8 +122,8 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
               onClick={() => window.api.openExternal('facetime://' + encodeURIComponent(convo.identifier))}
             >
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2.5" y="6" width="13" height="12" rx="3.2" />
-                <path d="M15.5 12.6 L20 15.9 a0.9 0.9 0 0 0 1.5 -.75 V8.85 a0.9 0.9 0 0 0 -1.5 -.75 L15.5 11.4" />
+                <rect x="3" y="6.5" width="12.4" height="11" rx="3" />
+                <path d="M15.4 12.9 l3.9 2.6 a1 1 0 0 0 1.55 -.83 V9.33 a1 1 0 0 0 -1.55 -.83 l-3.9 2.6" />
               </svg>
             </button>
           )}
@@ -133,7 +133,7 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
             onClick={() => onOpenInMessages(convo)}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 4.2 c-4.75 0 -8.4 3 -8.4 6.9 c0 2 1 3.75 2.55 5 c-.2 1 -.7 1.9 -1.4 2.65 c-.22 .23 -.05 .62 .27 .58 c1.55 -.18 2.9 -.75 4 -1.5 c.93 .27 1.93 .42 2.98 .42 c4.75 0 8.4 -3 8.4 -6.85 s-3.65 -6.9 -8.4 -6.9 Z" />
+              <path d="M12 4.6 c4.6 0 8.1 2.85 8.1 6.55 S16.6 17.7 12 17.7 c-1 0 -1.95 -.14 -2.83 -.4 c-1.1 .76 -2.5 1.33 -4.07 1.5 c-.33 .04 -.5 -.36 -.28 -.6 c.7 -.74 1.2 -1.6 1.4 -2.6 C4.75 14.4 3.9 12.85 3.9 11.15 C3.9 7.45 7.4 4.6 12 4.6 Z" />
             </svg>
           </button>
           {convo.archived ? (
@@ -190,7 +190,8 @@ export default function Thread({ convo, messages, draft, onArchive, onUnarchive,
   );
 }
 
-function bold(s) {
-  const [first, ...rest] = s.split(' ');
-  return `<b>${first}</b> ${rest.join(' ')}`;
+function bold(txt) {
+  const i = txt.lastIndexOf(' at ');
+  if (i === -1) return `<b>${txt}</b>`;
+  return `<b>${txt.slice(0, i)}</b>${txt.slice(i)}`;
 }

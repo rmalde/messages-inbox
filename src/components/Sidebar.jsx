@@ -16,9 +16,9 @@ function preview(c) {
 function ArchiveGlyph({ size = 15 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="4.6" rx="1.2" />
-      <path d="M5 8.6 V18.4 a1.6 1.6 0 0 0 1.6 1.6 h10.8 a1.6 1.6 0 0 0 1.6 -1.6 V8.6" />
-      <line x1="10" y1="12.6" x2="14" y2="12.6" />
+      <rect x="3.2" y="4.4" width="17.6" height="4.2" rx="1.3" />
+      <path d="M4.7 8.9 V18 a2 2 0 0 0 2 2 h10.6 a2 2 0 0 0 2 -2 V8.9" />
+      <line x1="10.2" y1="12.4" x2="13.8" y2="12.4" />
     </svg>
   );
 }
@@ -68,8 +68,8 @@ export default function Sidebar({
         <span className="spacer" />
         <button className="bar-btn" title="Settings (⌘,)" onClick={onOpenSettings}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3.1" />
-            <path d="M19.1 12a7.1 7.1 0 0 0 -.08 -1.05 l2.05 -1.58 -1.95 -3.38 -2.42 .98 a7.1 7.1 0 0 0 -1.82 -1.05 L14.5 3.4 h-5 l-.38 2.52 a7.1 7.1 0 0 0 -1.82 1.05 l-2.42 -.98 -1.95 3.38 2.05 1.58 a7.1 7.1 0 0 0 0 2.1 l-2.05 1.58 1.95 3.38 2.42 -.98 a7.1 7.1 0 0 0 1.82 1.05 l.38 2.52 h5 l.38 -2.52 a7.1 7.1 0 0 0 1.82 -1.05 l2.42 .98 1.95 -3.38 -2.05 -1.58 a7.1 7.1 0 0 0 .08 -1.05 Z" />
+            <circle cx="12" cy="12" r="3" />
+            <path d="M18.9 12 c0 -.33 -.03 -.65 -.08 -.97 l1.98 -1.52 a0.7 0.7 0 0 0 .17 -.9 l-1.7 -2.95 a0.7 0.7 0 0 0 -.86 -.3 l-2.33 .94 a6.9 6.9 0 0 0 -1.68 -.97 l-.35 -2.42 a0.7 0.7 0 0 0 -.7 -.6 h-3.4 a0.7 0.7 0 0 0 -.7 .6 l-.35 2.42 a6.9 6.9 0 0 0 -1.68 .97 l-2.33 -.94 a0.7 0.7 0 0 0 -.86 .3 l-1.7 2.95 a0.7 0.7 0 0 0 .17 .9 l1.98 1.52 a7 7 0 0 0 0 1.94 l-1.98 1.52 a0.7 0.7 0 0 0 -.17 .9 l1.7 2.95 a0.7 0.7 0 0 0 .86 .3 l2.33 -.94 c.52 .4 1.08 .73 1.68 .97 l.35 2.42 a0.7 0.7 0 0 0 .7 .6 h3.4 a0.7 0.7 0 0 0 .7 -.6 l.35 -2.42 a6.9 6.9 0 0 0 1.68 -.97 l2.33 .94 a0.7 0.7 0 0 0 .86 -.3 l1.7 -2.95 a0.7 0.7 0 0 0 -.17 -.9 l-1.98 -1.52 c.05 -.32 .08 -.64 .08 -.97 Z" />
           </svg>
         </button>
         <button className={'bar-btn ai-btn' + (aiBusy ? ' reflecting' : '')} title={aiBusy ? 'AI is updating its style guide…' : 'AI style & prompt evolution'} onClick={onOpenPrompts}>
@@ -80,16 +80,16 @@ export default function Sidebar({
         </button>
         <button className="bar-btn" title="New Message (opens Messages)" onClick={() => window.api.openExternal('imessage://')}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15.2 5.2 H6.4 A2.4 2.4 0 0 0 4 7.6 v10 A2.4 2.4 0 0 0 6.4 20 h10 a2.4 2.4 0 0 0 2.4 -2.4 V8.8" />
-            <path d="M17.8 3.4 a1.9 1.9 0 0 1 2.7 2.7 L12 14.6 l-3.6 .9 .9 -3.6 Z" />
+            <path d="M14.6 5.4 H7 A2.6 2.6 0 0 0 4.4 8 v9 A2.6 2.6 0 0 0 7 19.6 h9 a2.6 2.6 0 0 0 2.6 -2.6 V9.4" />
+            <path d="M17.9 3.5 a1.85 1.85 0 0 1 2.6 2.6 L12.6 14 l-3.4 .8 .8 -3.4 Z" />
           </svg>
         </button>
       </div>
 
       <div className="search">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="7" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          <circle cx="10.8" cy="10.8" r="6.9" />
+          <line x1="20.6" y1="20.6" x2="15.9" y2="15.9" />
         </svg>
         <input
           placeholder="Search"
@@ -122,17 +122,14 @@ export default function Sidebar({
         {shown.map((c, i) => (
           <React.Fragment key={c.guid}>
             {filter === 'inbox' && (i === 0 || shown[i - 1].section !== c.section) && (
-              c.section === 0 ? (
+              (c.section === 0 || i > 0) ? (
                 <div className="section-label">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                    <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.2 2" />
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 9 L12 16 L19 9" />
                   </svg>
-                  Time Sensitive
+                  {c.section === 0 ? 'Time sensitive' : c.section === 2 ? 'Their turn' : 'Messages'}
+                  <span className="sl-count">{conversations.filter((x) => x.section === c.section).length}</span>
                 </div>
-              ) : c.section === 2 && i > 0 ? (
-                <div className="section-label">Their Turn</div>
-              ) : c.section === 1 && i > 0 ? (
-                <div className="section-label">Messages</div>
               ) : null
             )}
           <div
@@ -155,8 +152,8 @@ export default function Sidebar({
             >
               {filter === 'archived' ? (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 14 v4.4 A1.6 1.6 0 0 0 5.6 20 h12.8 a1.6 1.6 0 0 0 1.6 -1.6 V14" />
-                  <path d="M12 14.5 V4.5 M8 8.2 L12 4.2 L16 8.2" />
+                  <path d="M4.4 14.6 v3.4 a2 2 0 0 0 2 2 h11.2 a2 2 0 0 0 2 -2 v-3.4" />
+                  <path d="M12 14.2 V4.6 M8.4 8 L12 4.4 L15.6 8" />
                 </svg>
               ) : <ArchiveGlyph />}
             </button>

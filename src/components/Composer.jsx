@@ -121,10 +121,10 @@ export default function Composer({ onSend, disabled, draft }) {
         type="button"
       >
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-          <circle cx="12" cy="12" r="9.2" />
-          <path d="M8 14.2 a4.4 4.4 0 0 0 8 0" />
-          <circle cx="9" cy="9.6" r="0.6" fill="currentColor" stroke="none" />
-          <circle cx="15" cy="9.6" r="0.6" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="8.8" />
+          <path d="M8.4 13.9 a4.1 4.1 0 0 0 7.2 0" />
+          <circle cx="9.2" cy="9.8" r="1" fill="currentColor" stroke="none" />
+          <circle cx="14.8" cy="9.8" r="1" fill="currentColor" stroke="none" />
         </svg>
       </button>
     </div>
