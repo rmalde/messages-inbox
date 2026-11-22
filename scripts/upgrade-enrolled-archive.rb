@@ -17,7 +17,15 @@ File.open(File.join(state, 'upgrade.lock'), File::RDWR | File::CREAT, 0600) do |
   exit 0 unless lock.flock(File::LOCK_EX | File::LOCK_NB)
   current, status = Open3.capture2('/usr/bin/plutil', '-extract', 'ProgramArguments.1', 'raw', '-o', '-', plist)
   exit 1 unless status.success?
-  exit 0 if current.chomp == expected
+  active = current.chomp
+  exit 0 if active == expected
+  # A separately installed worker may carry a different enrollment policy.
+  # The app updater owns only content-addressed releases from its installer.
+  releases = File.join(base, 'releases')
+  release = File.dirname(File.dirname(active))
+  exit 0 unless File.dirname(release) == releases &&
+                File.basename(release).match?(/\A[0-9a-f]{64}\z/) &&
+                active == File.join(release, 'scripts/archive-sync-service.mjs')
   exit 0 unless system('/bin/launchctl', 'print', "gui/#{Process.uid}/#{label}", out: File::NULL, err: File::NULL)
   exit 1 unless system(launcher, 'prepare') && system(launcher, 'activate')
 end
