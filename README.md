@@ -180,3 +180,29 @@ After updating the app checkout, run `./scripts/archive-service.sh preflight` th
 Run `./scripts/archive-service.sh prepare` once on each Mac to generate its device identity. Enroll the resulting public enrollment file with the service owner and configure Cloud Run identity in the device configuration as described in the private release README. Then run `./scripts/archive-service.sh activate` and `./scripts/archive-service.sh status` to verify a sync round. The service runs as a user LaunchAgent after activation. This release leaves inbound writes to the local inbox disabled.
 
 On launch, the app checks its active enrolled archive service and upgrades it in the background when its pinned release changes. First-time enrollment remains a separate step. To retry a worker upgrade manually, run `./scripts/archive-service.sh prepare` followed by `./scripts/archive-service.sh activate`. A compatible update retains the existing signing identity and local journal. Check the first subsequent sync round with `./scripts/archive-service.sh status`.
+
+### Signed archive gesture capture
+
+An already prepared PersonalTaskArchive **iMessage device installation** is used
+by normal Archive and Move to Inbox gestures. The main process verifies the exact
+window, main frame and renderer document URL before reserving a signed operation
+for the exact chat GUID. Reservation happens during the locked store mutation;
+confirmation uses the helper's independent readback after fsync and unlock.
+Move to Inbox captures both `archivedAt=null` and `mutedAt=null`. File watchers,
+remote metadata application, mute gestures and bulk scripts do not generate new
+signed intents. No Apple Messages database or provider-read state is written.
+
+No credential, device identity or transport service is created by this hook. It
+reads the existing private `PersonalTaskArchive/imessage/installation.json` and
+uses that installation's pinned Node helper. Without an installation, normal
+local archive behavior continues. Signing/readback failures produce only bounded
+error codes in the main-process log, preserve the local action, and do not claim
+cross-device success. Development renderers never sign. The app store must match
+`~/Library/Application Support/Messages Inbox/inbox-store.json`; differing app
+paths require explicit enrollment review.
+
+Store mutations require the native flock module and fail closed if locking or
+locked reload fails. Remote changes refresh the UI after any own-write suppression
+window. Test the hook without live messages using `node --test test/*.test.cjs`.
+Actual paired-device capture, transport delivery, readback and conflict tests
+still require the enrolled machines; unit tests alone do not establish convergence.

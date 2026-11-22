@@ -4,6 +4,8 @@ const { app, BrowserWindow, ipcMain, Menu, nativeTheme, shell } = require('elect
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { pathToFileURL } = require('node:url');
+const { createArchiveIntentHook } = require('./lib/archive-intent-hook');
 
 const db = require('./lib/db');
 const { Store } = require('./lib/store');
@@ -31,6 +33,12 @@ const rankCards = new Map();  // guid -> { forDate, card } comparison snippets
 let rankStats = { real: 0, fallback: 0 }; // per-run verdict accounting
 let rankBillingStrikes = 0;   // consecutive billing/auth failures (one blip must not poison a whole sort)
 let win;
+const archiveIntentHook = createArchiveIntentHook({
+  getWebContents: () => win && win.webContents,
+  expectedDocumentURL: process.env.VITE_DEV ? 'http://127.0.0.1:5173/' : pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href,
+  enabled: !process.env.VITE_DEV,
+  onError: code => console.warn(code),
+});
 
 function createWindow() {
   win = new BrowserWindow({
@@ -262,7 +270,7 @@ ipcMain.handle('chat:open', async (_e, guid) => {
 });
 
 ipcMain.handle('chat:archive', async (_e, guid) => {
-  store.archive(guid, Date.now());
+  archiveIntentHook.run(_e, store, 'chat:archive', guid);
   // Learning capture involves a sqlite round-trip — run it off the response
   // path so archiving feels instant in the UI.
   captureArchiveSignal(guid);
@@ -307,7 +315,7 @@ ipcMain.handle('chat:setTurn', async (_e, { guid, section, forDate }) => {
 });
 
 ipcMain.handle('chat:unarchive', async (_e, guid) => {
-  store.unarchive(guid);
+  archiveIntentHook.run(_e, store, 'chat:unarchive', guid);
   return true;
 });
 

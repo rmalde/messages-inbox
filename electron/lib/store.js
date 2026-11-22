@@ -28,7 +28,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Native flock (N-API — works in Electron without rebuilds). If it ever fails
-// to load we degrade to unlocked read-modify-write rather than breaking.
+// to load or cannot acquire a lock, mutations fail closed without an unlocked write.
 let fsx = null;
 try { fsx = require('fs-native-extensions'); } catch { /* unlocked fallback */ }
 
@@ -55,25 +55,33 @@ class Store {
   _watch() {
     try {
       const base = path.basename(this.filePath);
-      fs.watch(path.dirname(this.filePath), (_ev, fname) => {
+      this._watcher = fs.watch(path.dirname(this.filePath), (_ev, fname) => {
         if (fname !== base) return;
-        if (Date.now() < this._suppressUntil) return; // our own write
         clearTimeout(this._reloadT);
         this._reloadT = setTimeout(() => {
           this._load();
           if (this.onExternalChange) this.onExternalChange();
-        }, 80);
+        }, Math.max(80, this._suppressUntil - Date.now() + 20));
       });
     } catch { /* watching is best-effort; mutators reload anyway */ }
   }
 
-  // flock → reload → mutate → write in place → unlock.
+  close() { if (this._watcher) this._watcher.close(); clearTimeout(this._reloadT); }
+
+  // flock → strict locked reload → mutate → full write/fsync → unlock.
   _mutate(fn) {
     let fd = null;
     let locked = false;
     try {
-      try { fd = fs.openSync(this.filePath, 'r+'); }
-      catch { fd = fs.openSync(this.filePath, 'w+'); }
+      let created = false;
+      try { fd = fs.openSync(this.filePath, 'r+'); } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        try { fd = fs.openSync(this.filePath, 'wx+', 0o600); created = true; } catch (race) {
+          if (race.code !== 'EEXIST') throw race;
+          fd = fs.openSync(this.filePath, 'r+');
+        }
+      }
+      if (!fsx) throw new Error('Safe archive writes require file locking');
       if (fsx) {
         const deadline = Date.now() + 2000;
         while (!(locked = fsx.tryLock(fd))) {
@@ -81,29 +89,40 @@ class Store {
           Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
         }
       }
-      this._load();
+      if (!locked) throw new Error('Archive store busy; no unlocked write performed');
+      this._load({ fd, strict: true, allowEmpty: created });
       fn();
       const json = JSON.stringify(this.data);
       this._suppressUntil = Date.now() + 400; // don't react to our own write
+      const bytes = Buffer.from(json, 'utf8');
       fs.ftruncateSync(fd, 0);
-      fs.writeSync(fd, json, 0, 'utf8');
+      let offset = 0;
+      while (offset < bytes.length) {
+        const written = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset);
+        if (written <= 0) throw new Error('Inbox store write did not complete');
+        offset += written;
+      }
+      fs.fsyncSync(fd);
     } finally {
       if (locked) { try { fsx.unlock(fd); } catch { /* released with fd */ } }
       if (fd != null) { try { fs.closeSync(fd); } catch { /* closed */ } }
     }
   }
 
-  _load() {
+  _load({ fd = null, strict = false, allowEmpty = false } = {}) {
     // Unlocked readers can catch an in-place write mid-flight: retry briefly,
     // and NEVER clobber known-good in-memory state with a failed parse (that
     // would get written back and lose data).
     for (let i = 0; i < 3; i++) {
       try {
-        const parsed = JSON.parse(fs.readFileSync(this.filePath, 'utf8'));
+        const raw = fs.readFileSync(fd === null ? this.filePath : fd, 'utf8');
+        const parsed = allowEmpty && raw.length === 0 ? { chats: {} } : JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || (parsed.chats !== undefined && (!parsed.chats || typeof parsed.chats !== 'object' || Array.isArray(parsed.chats)))) throw new Error('Invalid inbox store');
         if (!parsed.chats) parsed.chats = {};
         this.data = parsed;
         return;
       } catch (e) {
+        if (strict) throw new Error('Inbox store changed or is invalid; no cached overwrite performed');
         if (e && e.code === 'ENOENT') break; // first run — keep defaults
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 15);
       }
@@ -143,8 +162,7 @@ class Store {
   }
 
   unmute(guid) {
-    this._rec(guid).mutedAt = null;
-    this._save();
+    this._mutate(() => { this._rec(guid).mutedAt = null; });
   }
 
   isMuted(guid) {
