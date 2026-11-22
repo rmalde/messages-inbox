@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createArchiveIntentHook}=require('../electron/lib/archive-intent-hook');
-const guid='iMessage;+;chat123',url='file:///fixture/dist/index.html';
+const guid='any;+;chat123',url='file:///fixture/dist/index.html';
 function fixture({fail=false,writeFail=false}={}){
  const calls=[],frame={url},web={mainFrame:frame,isDestroyed:()=>false},event={sender:web,senderFrame:frame};let locked=false,written=false;
  const store={filePath:'/fixture/inbox-store.json',data:{chats:{[guid]:{archivedAt:null,mutedAt:1}}},_mutate(fn){locked=true;try{fn();if(writeFail)throw Error('WRITE_FAILED');written=true}finally{locked=false}},archive(g,t){this._mutate(()=>this.data.chats[g].archivedAt=t)},unarchive(g){this._mutate(()=>{this.data.chats[g].archivedAt=null;this.data.chats[g].mutedAt=null})}};

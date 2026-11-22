@@ -19,7 +19,7 @@ function createArchiveIntentHook({getWebContents,expectedDocumentURL,enabled=tru
  return {run(event,store,command,guid,now=Date.now()){
   const web=getWebContents();
   if(!web||web.isDestroyed()||event?.sender!==web||event.senderFrame!==web.mainFrame||event.senderFrame.url!==expectedDocumentURL)throw Error('ARCHIVE_UI_SENDER_REJECTED');
-  if(!['chat:archive','chat:unarchive'].includes(command)||typeof guid!=='string'||! /^(?:iMessage|SMS|RCS);[+-];[^\x00-\x1f]{1,512}$/.test(guid)||!Number.isFinite(now)||now<0)throw Error('ARCHIVE_UI_ARGUMENT_INVALID');
+  if(!['chat:archive','chat:unarchive'].includes(command)||typeof guid!=='string'||! /^(?:iMessage|SMS|RCS|any);[+-];[^\x00-\x1f]{1,512}$/.test(guid)||!Number.isFinite(now)||now<0)throw Error('ARCHIVE_UI_ARGUMENT_INVALID');
   let config=null;try{if(enabled)config=resolveInstallation(store.filePath)}catch{onError('ARCHIVE_CAPTURE_CONFIGURATION_INVALID')}
   const envelopes=[],original=store._mutate;
   const call=(mode,input)=>{
