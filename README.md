@@ -172,3 +172,9 @@ the app is running — the app and any agent share one contract:
 
 Example (archive a chat): set `chats["<guid>"].archivedAt` to `Date.now()`;
 unarchive by setting it to `null`. Guids come from chat.db's `chat.guid`.
+
+## Archive sync service
+
+After updating the app checkout, run `./scripts/archive-service.sh preflight` there to check this Mac. The launcher downloads the pinned private macOS release through the signed-in GitHub CLI and verifies its SHA-256 checksum. It requires read access to the private service repo and Node 24 or a supported Codex desktop installation.
+
+Run `./scripts/archive-service.sh prepare` once on each Mac to generate its device identity. Enroll the resulting public enrollment file with the service owner and configure Cloud Run identity in the device configuration as described in the private release README. Then run `./scripts/archive-service.sh activate` and `./scripts/archive-service.sh status` to verify a sync round. The service runs as a user LaunchAgent after activation. This release leaves inbound writes to the local inbox disabled.
