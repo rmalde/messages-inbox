@@ -323,14 +323,14 @@ ipcMain.handle('chat:unarchive', async (_e, guid) => {
 // Mute = an archive that new messages can't undo. Like archiving it's a
 // decision not to reply, so it carries the same learning signal.
 ipcMain.handle('chat:mute', async (_e, guid) => {
-  store.mute(guid, Date.now());
+  archiveIntentHook.run(_e, store, 'chat:mute', guid);
   captureArchiveSignal(guid);
   if (aiStore) aiStore.clearUrgent(guid);
   return true;
 });
 
 ipcMain.handle('chat:unmute', async (_e, guid) => {
-  store.unmute(guid);
+  archiveIntentHook.run(_e, store, 'chat:unmute', guid);
   return true;
 });
 

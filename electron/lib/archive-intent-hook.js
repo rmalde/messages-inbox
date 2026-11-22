@@ -19,8 +19,15 @@ function createArchiveIntentHook({getWebContents,expectedDocumentURL,enabled=tru
  return {run(event,store,command,guid,now=Date.now()){
   const web=getWebContents();
   if(!web||web.isDestroyed()||event?.sender!==web||event.senderFrame!==web.mainFrame||event.senderFrame.url!==expectedDocumentURL)throw Error('ARCHIVE_UI_SENDER_REJECTED');
-  if(!['chat:archive','chat:unarchive'].includes(command)||typeof guid!=='string'||! /^(?:iMessage|SMS|RCS|any);[+-];[^\x00-\x1f]{1,512}$/.test(guid)||!Number.isFinite(now)||now<0)throw Error('ARCHIVE_UI_ARGUMENT_INVALID');
+  if(!['chat:archive','chat:unarchive','chat:mute','chat:unmute'].includes(command)||typeof guid!=='string'||! /^(?:iMessage|SMS|RCS|any);[+-];[^\x00-\x1f]{1,512}$/.test(guid)||!Number.isFinite(now)||now<0)throw Error('ARCHIVE_UI_ARGUMENT_INVALID');
   let config=null;try{if(enabled)config=resolveInstallation(store.filePath)}catch{onError('ARCHIVE_CAPTURE_CONFIGURATION_INVALID')}
+  const mutations={
+   'chat:archive':{method:'archive',fields:['archivedAt']},
+   'chat:unarchive':{method:'unarchive',fields:['archivedAt','mutedAt']},
+   'chat:mute':{method:'mute',fields:['mutedAt']},
+   'chat:unmute':{method:'unmute',fields:['mutedAt']},
+  };
+  const mutation=mutations[command];
   const envelopes=[],original=store._mutate;
   const call=(mode,input)=>{
    const out=spawn(config.nodePath,[config.helperPath,config.configPath,mode],{input:JSON.stringify(input),encoding:'utf8',stdio:['pipe','pipe','ignore'],timeout:15000,maxBuffer:16384});
@@ -31,13 +38,13 @@ function createArchiveIntentHook({getWebContents,expectedDocumentURL,enabled=tru
    // A visible conversation may have no app metadata until the first gesture.
    if(!Object.hasOwn(this.data.chats,guid)&&!chatExists(guid))throw Error('ARCHIVE_CHAT_NOT_KNOWN');
    fn();
-   if(config)for(const field of command==='chat:archive'?['archivedAt']:['archivedAt','mutedAt']){
+   if(config)for(const field of mutation.fields){
     try{const result=call('begin',{nativeId:guid,field,value:this.data.chats[guid][field]});
      if(typeof result.operation?.operationId!=='string')throw Error();envelopes.push(result.operation.operationId);
     }catch{onError('ARCHIVE_CAPTURE_PENDING')}
    }
   })};
-  try{if(command==='chat:archive')store.archive(guid,now);else store.unarchive(guid)}finally{store._mutate=original}
+  try{store[mutation.method](guid,now)}finally{store._mutate=original}
   // Independent signed readback occurs after flock release + fsync. Failure never undoes user intent.
   for(const operationId of envelopes)try{call('confirm',{operationId})}catch{onError('ARCHIVE_READBACK_PENDING')}
   return true;
