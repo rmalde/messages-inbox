@@ -144,6 +144,13 @@ function buildMenu() {
 }
 
 app.whenReady().then(async () => {
+  if (process.platform === 'darwin' && !process.env.VITE_DEV) {
+    const upgrade = require('node:child_process').spawn('/usr/bin/ruby',
+      [path.join(__dirname, '..', 'scripts', 'upgrade-enrolled-archive.rb')], { stdio: 'ignore' });
+    upgrade.on('error', () => console.warn('Archive service updater could not start.'));
+    upgrade.on('exit', code => { if (code !== 0) console.warn('Archive service upgrade needs attention.'); });
+    upgrade.unref();
+  }
   store = new Store(path.join(app.getPath('userData'), 'inbox-store.json'));
   store.onExternalChange = () => { if (win) win.webContents.send('ai-changed'); };
   aiStore = new AiStore(app.getPath('userData'));
