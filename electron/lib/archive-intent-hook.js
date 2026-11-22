@@ -15,7 +15,7 @@ function installedHelper(storePath){
  return {nodePath:install.nodePath,helperPath,configPath};
 }
 /** Only explicit trusted renderer IPC enters here. Watchers/remote application never sign. */
-function createArchiveIntentHook({getWebContents,expectedDocumentURL,enabled=true,onError=()=>{},resolveInstallation=installedHelper,spawn=spawnSync}){
+function createArchiveIntentHook({getWebContents,expectedDocumentURL,enabled=true,chatExists=()=>false,onError=()=>{},resolveInstallation=installedHelper,spawn=spawnSync}){
  return {run(event,store,command,guid,now=Date.now()){
   const web=getWebContents();
   if(!web||web.isDestroyed()||event?.sender!==web||event.senderFrame!==web.mainFrame||event.senderFrame.url!==expectedDocumentURL)throw Error('ARCHIVE_UI_SENDER_REJECTED');
@@ -28,8 +28,8 @@ function createArchiveIntentHook({getWebContents,expectedDocumentURL,enabled=tru
    if(out.status!==0||!result||result.error)throw Error('ARCHIVE_CAPTURE_UNAVAILABLE');return result;
   };
   store._mutate=function(fn){return original.call(this,()=>{
-   // Store reloaded under the lock. No row IDs, new chats or stale cached identities.
-   if(!Object.hasOwn(this.data.chats,guid))throw Error('ARCHIVE_CHAT_NOT_KNOWN');
+   // A visible conversation may have no app metadata until the first gesture.
+   if(!Object.hasOwn(this.data.chats,guid)&&!chatExists(guid))throw Error('ARCHIVE_CHAT_NOT_KNOWN');
    fn();
    if(config)for(const field of command==='chat:archive'?['archivedAt']:['archivedAt','mutedAt']){
     try{const result=call('begin',{nativeId:guid,field,value:this.data.chats[guid][field]});

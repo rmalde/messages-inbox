@@ -1,6 +1,6 @@
 'use strict';
 
-const { execFile } = require('child_process');
+const { execFile, execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -38,6 +38,16 @@ function query(sql) {
       }
     );
   });
+}
+
+// Called only for an explicit archive gesture on a chat with no local metadata.
+function chatExists(guid) {
+  const hex = Buffer.from(guid, 'utf8').toString('hex');
+  const sql = `SELECT count(*) FROM (SELECT 1 FROM chat WHERE guid = CAST(X'${hex}' AS TEXT) LIMIT 2)`;
+  const count = execFileSync(SQLITE, ['-readonly', CHAT_DB, sql], {
+    encoding: 'utf8', timeout: 2000, maxBuffer: 4096, stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  return count.trim() === '1';
 }
 
 function textOf(row) {
@@ -327,4 +337,4 @@ async function lastMessage(guid) {
   }
 }
 
-module.exports = { getConversations, getMessages, lastMessage, appleToMs, normalizePhone, ATTACH_DIR };
+module.exports = { chatExists, getConversations, getMessages, lastMessage, appleToMs, normalizePhone, ATTACH_DIR };

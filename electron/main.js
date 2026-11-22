@@ -37,6 +37,7 @@ const archiveIntentHook = createArchiveIntentHook({
   getWebContents: () => win && win.webContents,
   expectedDocumentURL: process.env.VITE_DEV ? 'http://127.0.0.1:5173/' : pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href,
   enabled: !process.env.VITE_DEV,
+  chatExists: db.chatExists,
   onError: code => console.warn(code),
 });
 
