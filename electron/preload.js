@@ -3,6 +3,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  archiveConflicts: (mode,input) => ipcRenderer.invoke('archive:conflicts',{mode,input}),
   listConversations: () => ipcRenderer.invoke('conversations:list'),
   listMessages: (chatId) => ipcRenderer.invoke('messages:list', chatId),
   openChat: (guid) => ipcRenderer.invoke('chat:open', guid),

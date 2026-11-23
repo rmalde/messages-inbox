@@ -1,3 +1,4 @@
+import ArchiveConflictPanel from './ArchiveConflictPanel';
 import React, { useEffect, useState } from 'react';
 
 function Toggle({ on, onChange }) {
@@ -47,6 +48,7 @@ export default function Settings({ onClose, onOpenPrompts }) {
           </button>
         </div>
 
+        <ArchiveConflictPanel />
         <div className="setting-row">
           <div className="setting-text">
             <div className="setting-name">Auto drafting</div>

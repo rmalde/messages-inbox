@@ -1,11 +1,13 @@
 'use strict';
+const createArchiveConflictIPC = require('./lib/archive-conflict-ipc.cjs');
+
 
 const { app, BrowserWindow, ipcMain, Menu, nativeTheme, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { pathToFileURL } = require('node:url');
-const { createArchiveIntentHook } = require('./lib/archive-intent-hook');
+const { createArchiveIntentHook, installedHelper } = require('./lib/archive-intent-hook');
 
 const db = require('./lib/db');
 const { Store } = require('./lib/store');
@@ -713,3 +715,5 @@ ipcMain.handle('theme:isDark', () => nativeTheme.shouldUseDarkColors);
 ipcMain.handle('contact:image', async (_e, handle) => {
   try { return await getContactImage(handle); } catch { return null; }
 });
+
+ipcMain.handle('archive:conflicts',createArchiveConflictIPC({getWebContents:()=>win&&win.webContents,expectedDocumentURL:pathToFileURL(path.join(__dirname,'..','dist','index.html')).href,resolveInstallation:()=>{if(process.env.VITE_DEV)return null;return installedHelper(store.filePath);}}));
