@@ -8,7 +8,7 @@ plist = File.join(Dir.home, 'Library/LaunchAgents', label + '.plist')
 state = File.join(base, provider)
 exit 0 unless File.file?(plist) && File.file?(File.join(state, 'installation.json'))
 
-manifest = 'd1e9b2ebd64c8333473ac6a63d18cad3ead19e4f477f4657f6e39bdd9623395e'
+manifest = 'f0f00650cbaf74849b1c675f7753a18130f0997caa947fcee7ed4795c9beef86'
 expected = File.join(base, 'releases', manifest, 'scripts/archive-sync-service.mjs')
 launcher = File.join(__dir__, 'archive-service.sh')
 ENV['PATH'] = ['/opt/homebrew/bin','/usr/local/bin',ENV['PATH']].compact.join(':')
