@@ -253,21 +253,26 @@ export default function App() {
     const idx = cur.findIndex((x) => x.guid === c.guid);
     const neighborGuid = cur[idx + 1] ? cur[idx + 1].guid : (idx > 0 ? cur[idx - 1].guid : null);
 
-    // Optimistic: the row disappears and the selection jumps immediately; the
-    // store write and list reconciliation happen in the background.
     const neighbor = neighborGuid ? cur.find((x) => x.guid === neighborGuid) : null;
+    try {
+      await window.api.archive(c.guid);
+    } catch {
+      showToast('Couldn’t confirm the archive. Check the inbox and try again.');
+      await refreshConvos();
+      return;
+    }
     setConvos((prev) => prev.map((x) => (x.guid === c.guid ? { ...x, archived: true } : x)));
-    if (filter === 'inbox') {
+    if (filter === 'inbox' && selectedRef.current?.guid === c.guid) {
       if (neighbor) selectConvo(neighbor);
       else { setSelectedGuid(null); setMessages([]); }
     }
-    window.api.archive(c.guid).then(() => refreshConvos());
     showToast('Conversation archived', async () => {
       await window.api.unarchive(c.guid);
       await refreshConvos();
       if (filter === 'inbox') selectConvo(c);
       setToast(null);
     });
+    await refreshConvos();
   }, [refreshConvos, filter, selectConvo, showToast]);
 
   const unarchive = useCallback(async (c) => {
